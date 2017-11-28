@@ -51,7 +51,7 @@ router.get('/add', function(req, res, next) {
 
 router.get('/list', function(req, res, next) {
   var urlmap = db.get('urlmap');
-  res.send(JSON.stringify(urlmap, null, 2));
+  res.send(JSON.stringify(urlmap));
 });
 
 module.exports = router;

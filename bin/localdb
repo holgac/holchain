@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+URL="127.0.0.1:3000/localdb"
+
+if [ -z "$1" ]; then
+  RES=$(curl --fail "$URL/list" 2>/dev/null)
+  if [ $? -ne 0 ]; then
+    exit 1
+  fi
+  RES=$(urldecode "$RES")
+  echo "$RES" | jq .
+else
+  KEY=$(urlencode "$1")
+  if [ -z "$2" ]; then
+    RES=$(curl --fail "$URL?key=$KEY" 2>/dev/null)
+    if [ $? -ne 0 ]; then
+      exit 1
+    fi
+    RES=$(urldecode "$RES")
+    echo "$RES"
+  else
+    VALUE=$(urlencode "$2")
+    RES=$(curl --fail "$URL/add?key=$KEY&value=$VALUE" 2>/dev/null)
+    if [ $? -ne 0 ]; then
+      exit 1
+    fi
+  fi
+fi
