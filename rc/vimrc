@@ -1,0 +1,76 @@
+let g:leader='g'
+let mapleader = g:leader
+
+" helper python functions {{{
+" repeats the given a:command a:n times
+function! Repeat(command, n)
+python << EOF
+import vim
+import subprocess
+cmd = vim.eval('a:command')
+n = int(vim.eval('a:n'))
+for _ in xrange(n):
+  vim.command(cmd)
+EOF
+endfunction
+
+" creates mapping for <leader>N<prefix> for command*n
+function! RepeatN(prefix, command)
+python << EOF
+import vim
+leader = vim.eval('g:leader')
+prefix = vim.eval('a:prefix')
+cmdpre = "nnoremap " + leader
+command = vim.eval('a:command')
+for i in xrange(1, 10):
+  cmd = cmdpre + str(i) + prefix + " "
+  for _ in xrange(0, i):
+    cmd += command
+  vim.command(cmd)
+EOF
+endfunction
+" }}}
+
+" general config {{{
+syntax on
+set tabstop=2 expandtab autoindent shiftwidth=2 hlsearch backspace=2
+set ruler smartcase ignorecase
+set viminfo+=:1000
+set foldmethod=marker
+set relativenumber number incsearch
+nnoremap <leader>sn :noh<CR>
+" dont use registers on x key
+noremap x "_x
+noremap X "_X
+" filename
+nnoremap <leader>sfn :let @" = expand("%:t")<CR>
+" absolute path
+nnoremap <leader>sfp :let @" = expand("%:p")<CR>
+" get dir (path minus filename)
+nnoremap <leader>sfd :let @" = expand("%:h")<CR>
+" Open the same file in a new tab
+nmap <leader>sot :let @h = expand("%:p")<CR>ge:e <C-r>h<CR>
+" reload vimrc
+nnoremap <leader>sso :so ~/.vimrc<CR>
+" jk to escape
+inoremap jk <esc>
+inoremap <esc> <esc>:call HardModeEcho(g:HardMode_hardmodeMsg)<CR>a
+" }}}
+
+" colours {{{
+hi Comment ctermfg=Cyan
+" }}}
+
+" plugin config {{{
+execute pathogen#infect()
+let g:HardMode_level = 'wannabe' 
+autocmd VimEnter,BufNewFile,BufReadPost * silent! call HardMode()
+let NERDTreeIgnore=['\.d$[[file]]', '\.o$[[file]]']
+nnoremap <C-n> :NERDTreeToggle<CR>
+" }}}
+
+" tab operations {{{
+nnoremap <leader>e :tabedit<CR>
+call RepeatN("t", ":tabnext<CR>")
+call RepeatN("q", ":quit<CR>")
+" }}}

@@ -18,3 +18,4 @@ add_to() {
 }
 
 add_to "$BASHRC" "source $DIR/bashrc" "#"
+add_to "$VIMRC" "source $DIR/vimrc" '"'

@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
 BASHRC="$HOME/.bashrc"
+VIMRC="$HOME/.vimrc"
 I3CONFIG="$HOME/.config/i3/config"
