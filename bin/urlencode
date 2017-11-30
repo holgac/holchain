@@ -1,0 +1,28 @@
+#!/usr/bin/env bash
+
+urlencode() {
+  INP="$1"
+  SPACE=$(printf '%%%02X' "' ")
+  OLD_LC_COLLATE=$LC_COLLATE
+  LC_COLLATE=C
+  local length="${#INP}"
+  for (( i = 0; i < length; i++ )); do
+    local c="${INP:i:1}"
+    case $c in
+      [a-zA-Z0-9.~_-]) printf "$c" ;;
+      [\ ]) echo -n "$SPACE" ;;
+      *) printf '%%%02X' "'$c" ;;
+    esac
+  done
+  LC_COLLATE=$OLD_LC_COLLATE
+}
+
+if [ $# -eq 0 ]; then
+  INP=$(cat /dev/stdin)
+  urlencode "$INP"
+elif [ $# -eq 1 ]; then
+  urlencode "${BASH_ARGV[*]}"
+else
+  echo "$0 either reads from stdin or takes a single argumnet"
+  exit 1
+fi
