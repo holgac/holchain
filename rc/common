@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+BASHRC="$HOME/.bashrc"
+I3CONFIG="$HOME/.config/i3/config"

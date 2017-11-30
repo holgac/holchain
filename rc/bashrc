@@ -1,0 +1,46 @@
+#TODO: add setup script for installing stuff like pygmentize and jq
+
+if [ $_ = ${BASH_SOURCE[0]} ]; then
+  echo "You should source this file..."
+fi
+RC_DIR=$(dirname "${BASH_SOURCE[0]}")
+REPO_DIR=$(dirname "$RC_DIR")
+source "$RC_DIR/common"
+PATH="$PATH:$REPO_DIR/bin"
+
+# Configuration for builtins {{{
+shopt -s checkwinsize
+# }}}
+
+# Exports {{{
+export EDITOR=vim
+export VISUAL=vim
+# }}}
+
+# Aliases {{{
+
+# aliases for coreutils
+alias ls='ls --color=auto'
+alias ll='ls -la'
+alias mv='mv -i'
+alias sbp='source ~/.bashrc'
+
+#bash meta stuff
+# like `clear`, but cleaner if you scroll up
+alias cln='for i in $(tput lines); do printf "\n"; done'
+
+# aliases to shorten commands
+alias ffs='pygmentize -g'
+alias hpd='hphpd -h localhost'
+alias GEET="GET http://localhost/status.php"
+alias cdd='cd ~/develop'
+alias holbinlog='mysqlbinlog -vv --base64-output=decode-rows'
+# cheat sheet for i3
+alias i3cheat="cat $I3CONFIG | grep -Ev -e '^ *#' -e '^ *$' | sed -re 's/^  +/  /g' -e 's/^( *)bindsym /\1/g' -e 's/ exec (--no-startup-id)/ =>/g'"
+# }}}
+
+# displays only basic info
+npminfo () {
+  npm info "$1" | tr "'" '"' | sed -r 's/(\w+): /"\1":/g'\
+    | jq '{name,description,license,version}'
+}
