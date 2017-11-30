@@ -44,3 +44,11 @@ npminfo () {
   npm info "$1" | tr "'" '"' | sed -r 's/(\w+): /"\1":/g'\
     | jq '{name,description,license,version}'
 }
+
+ts () {
+  if [ -z $1 ]; then
+    date '+%s'
+  else
+    date -d "@$1"
+  fi
+}
