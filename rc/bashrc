@@ -10,6 +10,22 @@ PATH="$PATH:$REPO_DIR/bin"
 
 # Configuration for builtins {{{
 shopt -s checkwinsize
+
+holgac_ps_fn () {
+  if [ $? -eq 0 ]; then
+    ST=' :)'
+  else
+    ST=' :('
+  fi
+  DATE=$(date "+%I:%M " | tr -d "\n")
+  DIR=$(dirs | tr -d "\n")
+  OUT="$DATE$DIR$ST"
+  if type ps_helper 2>/dev/null; then
+    OUT=$(ps_helper "$OUT")
+  fi
+  echo -en "$OUT"
+}
+export PS1="\$(holgac_ps_fn)"
 # }}}
 
 # Exports {{{
