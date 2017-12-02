@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+
+URL="127.0.0.1:3000/log"
+
+if [ -z $1 ]; then
+  curl "$URL/list"
+else
+  LOGDATA=$(urlencode "$1")
+  curl "$URL?log=$LOGDATA"
+fi

@@ -7,3 +7,6 @@ redirect:
 
 localdb:
   I use it as a simple key/value storage with the script I have in $REPO/bin.
+
+logger:
+  Logs the given log data to file.
