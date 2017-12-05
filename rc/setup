@@ -22,6 +22,10 @@ add_to() {
   COMMENT_CHAR="$3"
   BEGIN_LINE="$COMMENT_CHAR  Begin holchain block"
   END_LINE="$COMMENT_CHAR  End holchain block"
+  if [ ! -e "$DST_FILE" ]; then
+    echo "$DST_FILE does not exist, skipping"
+    return
+  fi
   grep --quiet "$BEGIN_LINE" "$DST_FILE"
   LINES_NOT_FOUND=$?
   TMPFILE=$(mktemp)
