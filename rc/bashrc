@@ -45,7 +45,7 @@ alias sbp='source ~/.bashrc'
 
 #bash meta stuff
 # like `clear`, but cleaner if you scroll up
-alias cln='for i in $(tput lines); do printf "\n"; done'
+alias cln='for i in $(seq $(tput lines)); do printf "\n"; done'
 
 # aliases to shorten commands
 alias ffs='pygmentize -g'
