@@ -1,0 +1,53 @@
+#!/bin/sh
+
+usage () {
+  echo "$0 [OPTIONS] [--] FROM TO"
+  echo "Options:"
+  echo "  -h: Display this help and exit"
+  echo "  -v: Invert the search"
+  echo "  -f: Print FROM lines too"
+  echo "  -t: Print TO lines too"
+}
+
+INVERSE=0
+PRINTFROM=0
+PRINTTO=0
+
+while getopts "vhft" OPT; do
+  case "$OPT" in
+    v) INVERSE=1;;
+    f) PRINTFROM=1;;
+    t) PRINTTO=1;;
+    \?) usage && exit 0;;
+  esac
+done
+shift $((OPTIND -1))
+if [ $# -ne 2 ]; then
+  usage && exit 1;
+fi
+
+FROM="$1"
+TO="$2"
+
+COND="ctr"
+if [ $PRINTFROM -eq 0 ]; then
+  COND="$COND && !from"
+fi
+if [ $PRINTTO -eq 0 ]; then
+  COND="$COND && !to"
+fi
+if [ $INVERSE -eq 1 ]; then
+  COND="!($COND)"
+fi
+
+CMD='BEGIN {ctr=0;}
+  {
+    from = index($0, "'"$FROM"'");
+    to = index($0, "'"$TO"'");
+    if(from) ctr=1;
+    if ('"$COND"') print $0;
+    if(to) ctr=0;
+  }
+'
+
+awk "$CMD"

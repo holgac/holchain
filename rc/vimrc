@@ -67,6 +67,7 @@ let g:HardMode_level = 'wannabe'
 autocmd VimEnter,BufNewFile,BufReadPost * silent! call HardMode()
 let NERDTreeIgnore=['\.d$[[file]]', '\.o$[[file]]']
 nnoremap <C-n> :NERDTreeToggle<CR>
+nmap <silent> <Leader>r <Plug>(CommandT)
 " }}}
 
 " tab operations {{{

@@ -1,0 +1,1 @@
+exec xrandr --output eDP-1 --mode '1360x768'

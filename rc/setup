@@ -1,10 +1,9 @@
 #!/usr/bin/env bash
-echo "$0"
 DIR=$(dirname "$(readlink -f "$0")")
+FROMTO="$(dirname "$DIR")/bin/fromto"
 source "$DIR/common"
-echo "$DIR"
 
-add_to() {
+include_in() {
   DST_FILE="$1"
   LINE_TO_ADD="$2"
   COMMENT_CHAR="$3"
@@ -17,5 +16,28 @@ add_to() {
   fi
 }
 
-add_to "$BASHRC" "source $DIR/bashrc" "#"
-add_to "$VIMRC" "source $DIR/vimrc" '"'
+add_to() {
+  DST_FILE="$1"
+  FILE_TO_ADD="$2"
+  COMMENT_CHAR="$3"
+  BEGIN_LINE="$COMMENT_CHAR  Begin holchain block"
+  END_LINE="$COMMENT_CHAR  End holchain block"
+  grep --quiet "$BEGIN_LINE" "$DST_FILE"
+  LINES_NOT_FOUND=$?
+  TMPFILE=$(mktemp)
+  cat "$DST_FILE" | . "$FROMTO" -vft "$BEGIN_LINE" "$END_LINE" > "$TMPFILE"
+  echo "$BEGIN_LINE" >> "$TMPFILE"
+  cat "$FILE_TO_ADD" >> "$TMPFILE"
+  echo "$END_LINE" >> "$TMPFILE"
+  cp "$DST_FILE" "$FILE_TO_ADD.backup" || exit 1
+  mv "$TMPFILE" "$DST_FILE"
+  if [ $LINES_NOT_FOUND -eq 0 ]; then
+    echo "Updated config in $DST_FILE"
+  else
+    echo "Added config to $DST_FILE"
+  fi
+}
+
+include_in "$BASHRC" "source $DIR/bashrc" "#"
+include_in "$VIMRC" "source $DIR/vimrc" '"'
+add_to "$I3CONFIG" "$DIR/i3config" "#"
