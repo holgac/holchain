@@ -69,5 +69,5 @@ case "$CMD" in
     # disables external display
     xrandr --output $(sysinfo seconddisplay) --off
     xrandr --output eDP-1 --mode '1360x768';;
-  *) printusage "$0" && exit 1
+  *) usage && exit 1
 esac
