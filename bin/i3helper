@@ -1,12 +1,5 @@
 #!/usr/bin/env bash
 
-usage() {
-  FILE="$0"
-  echo "$FILE COMMAND"
-  cat "$FILE" | fromto 'case' 'esac' | grep -A1 --group-separator '' -E '\)$' \
-    | tr ')' ':' | tr -d '#' | sed -rn 's/(.+)/\1/g; s/^  ( )?\1*/\1\1/gp'
-}
-
 CMD="$1"
 
 if [ "${CMD:=help}" = "help" ]; then
@@ -69,5 +62,5 @@ case "$CMD" in
     # disables external display
     xrandr --output $(sysinfo seconddisplay) --off
     xrandr --output eDP-1 --mode '1360x768';;
-  *) usage && exit 1
+  *) printusage "$0" && exit 1
 esac
