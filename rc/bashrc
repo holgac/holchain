@@ -6,8 +6,7 @@ fi
 RC_DIR=$(dirname "${BASH_SOURCE[0]}")
 REPO_DIR=$(dirname "$RC_DIR")
 source "$RC_DIR/common"
-PATH="$PATH:$REPO_DIR/bin"
-export PATH
+export PATH="$PATH:$REPO_DIR/bin"
 
 # Configuration for builtins {{{
 shopt -s checkwinsize
@@ -21,6 +20,7 @@ holgac_ps_fn () {
   DATE=$(date "+%I:%M " | tr -d "\n")
   DIR=$(dirs | tr -d "\n")
   OUT="$DATE$DIR$ST"
+  # ps_helper can be a user defined function that formats the path
   if type ps_helper 2>/dev/null 1>/dev/null; then
     OUT=$(ps_helper "$OUT")
   fi

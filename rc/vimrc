@@ -73,5 +73,6 @@ nmap <silent> <Leader>r <Plug>(CommandT)
 " tab operations {{{
 nnoremap <leader>e :tabedit<CR>
 call RepeatN("t", ":tabnext<CR>")
+call RepeatN("T", ":tabprevious<CR>")
 call RepeatN("q", ":quit<CR>")
 " }}}
