@@ -1,0 +1,52 @@
+#!/bin/bash
+
+usage() {
+  FILE="$0"
+  echo "$FILE COMMAND"
+  cat "$FILE" | fromto 'case' 'esac' | grep -A1 --group-separator '' -E '\)$' \
+    | tr ')' ':' | tr -d '#' | sed -rn 's/(.+)/\1/g; s/^  ( )?\1*/\1\1/gp'
+}
+
+CMD="$1"
+
+if [ "${CMD:=help}" = "help" ]; then
+  usage && exit
+fi
+
+lock() {
+  i3lock -c 43203f -I 3 -f -d
+}
+
+case "$CMD" in
+  lock)
+    # locks the system, requires password to log back in
+    lock ;;
+  logout)
+    # logs out of the system
+    i3-msg exit ;;
+  suspend)
+    # suspends the system
+    lock && systemctl suspend ;;
+  hibernate)
+    # puts the system in hibernate mode
+    lock && systemctl hibernate ;;
+  reboot)
+    # restarts the system
+    systemctl reboot ;;
+  shutdown)
+    # shuts the system down
+    systemctl poweroff ;;
+  volup)
+    # turns the volume up
+    pactl set-sink-volume $(clinfo sink) +5% ;;
+  voldown)
+    # turns the volume down
+    pactl set-sink-volume $(clinfo sink) -5% ;;
+  voltoggle)
+    # toggles the sound
+    pactl set-sink-mute $(clinfo sink) toggle ;;
+  screenshot)
+    scrot -s -e "mv \$f $HOME/screenshots/" 2>&1 1>>$LOG
+  ;;
+  *) usage && exit 1
+esac
