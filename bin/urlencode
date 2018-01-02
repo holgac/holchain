@@ -23,6 +23,6 @@ if [ $# -eq 0 ]; then
 elif [ $# -eq 1 ]; then
   urlencode "${BASH_ARGV[*]}"
 else
-  echo "$0 either reads from stdin or takes a single argumnet"
+  echo "$0 either reads from stdin or takes a single argument"
   exit 1
 fi

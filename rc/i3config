@@ -1,1 +1,59 @@
 exec xrandr --output eDP-1 --mode '1360x768'
+
+bindsym XF86AudioRaiseVolume exec i3stuff volup
+bindsym XF86AudioLowerVolume exec i3stuff voldown
+bindsym XF86AudioMute exec i3stuff voltoggle
+bindsym --release Print exec i3stuff ss
+
+bindsym XF86MonBrightnessUp exec light -A 5 # increase screen brightness
+bindsym XF86MonBrightnessDown exec light -U 5 # decrease screen brightness
+
+# TODO: how to deal with conflicts in keybindings?
+# change focus
+bindsym $mod+h focus left
+bindsym $mod+j focus down
+bindsym $mod+k focus up
+bindsym $mod+l focus right
+
+# alternatively, you can use the cursor keys:
+bindsym $mod+Left focus left
+bindsym $mod+Down focus down
+bindsym $mod+Up focus up
+bindsym $mod+Right focus right
+
+# move focused window
+bindsym $mod+Shift+h move left
+bindsym $mod+Shift+j move down
+bindsym $mod+Shift+k move up
+bindsym $mod+Shift+l move right
+
+# alternatively, you can use the cursor keys:
+bindsym $mod+Shift+Left move left
+bindsym $mod+Shift+Down move down
+bindsym $mod+Shift+Up move up
+bindsym $mod+Shift+Right move right
+
+# split in orientation
+bindsym $mod+Shift+b split h
+bindsym $mod+Shift+v split v
+
+mode "Are you sure?" {
+  bindsym Return exec --no-startup-id i3helper execute, mode "default"
+  bindsym Escape mode "default"
+}
+
+set $mode_system "(l)ock, l(o)gout, (s)uspend, (h)ibernate, (r)eboot, (S)hutdown, (m)onitor, (M)onitoroff, m(i)rror"
+mode $mode_system {
+    bindsym l exec --no-startup-id i3helper prompt "i3helper lock", mode "default"
+    bindsym o exec --no-startup-id i3helper prompt "i3helper logout", mode "default"
+    bindsym s exec --no-startup-id i3helper prompt "i3helper suspend", mode "default"
+    bindsym h exec --no-startup-id i3helper prompt "i3helper hibernate", mode "default"
+    bindsym r exec --no-startup-id i3helper prompt "i3helper reboot", mode "default"
+    bindsym Shift+s exec --no-startup-id i3helper prompt "i3helper shutdown", mode "default"
+    bindsym m exec --no-startup-id i3helper left, mode "default"
+    bindsym Shift+m exec --no-startup-id i3helper scroff, mode "default"
+    # back to normal: Enter or Escape
+    bindsym Return mode "default"
+    bindsym Escape mode "default"
+}
+bindsym $mod+p mode $mode_system

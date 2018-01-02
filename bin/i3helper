@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
 usage() {
   FILE="$0"
@@ -36,17 +36,38 @@ case "$CMD" in
   shutdown)
     # shuts the system down
     systemctl poweroff ;;
+  prompt)
+    # asks the user before executing a powerful command
+    PROMPTED="$2"
+    if [ -z "$PROMPTED" ]; then
+      exit 1;
+    fi
+    localdb "prompt" "$PROMPTED" > /dev/null
+    i3-msg 'mode "Are you sure?"';;
+  execute)
+    # executes the last prompted command
+    CMD=$(localdb "prompt")
+    eval "$CMD";;
   volup)
     # turns the volume up
-    pactl set-sink-volume $(clinfo sink) +5% ;;
+    pactl set-sink-volume $(sysinfo sinkid) +5% ;;
   voldown)
     # turns the volume down
-    pactl set-sink-volume $(clinfo sink) -5% ;;
+    pactl set-sink-volume $(sysinfo sinkid) -5% ;;
   voltoggle)
-    # toggles the sound
-    pactl set-sink-mute $(clinfo sink) toggle ;;
+    # mutes/unmutes the sound
+    pactl set-sink-mute $(sysinfo sinkid) toggle ;;
   screenshot)
-    scrot -s -e "mv \$f $HOME/screenshots/" 2>&1 1>>$LOG
+    # takes a screenshot of the selected rectangle
+    scrot -s -e "mv \$f $HOME/screenshots/"
   ;;
+  left)
+    # sets external display to the left of the laptop screen
+    xrandr --output $(sysinfo seconddisplay) --auto --left-of eDP-1 --primary
+    xrandr --output eDP-1 --mode '1360x768';;
+  scroff)
+    # disables external display
+    xrandr --output $(sysinfo seconddisplay) --off
+    xrandr --output eDP-1 --mode '1360x768';;
   *) usage && exit 1
 esac

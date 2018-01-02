@@ -1,0 +1,42 @@
+#!/usr/bin/env bash
+
+CMD="$1"
+
+if [ "${CMD:=help}" = "help" ]; then
+  printusage "$0" && exit 0
+fi
+
+getsinkid() {
+  SINKS=$(pactl list short sinks)
+  BLUEZ=$(echo "$SINKS" | grep bluez_sink)
+  if [ $? -eq 0 ]; then
+    echo "$BLUEZ" | head -n 1 | cut -f 1
+  else
+    echo "$SINKS" | head -n 1 | cut -f 1
+  fi
+}
+
+curwinid() {
+  xprop -root | awk '/_NET_ACTIVE_WINDOW\(WINDOW\)/{print $NF}'
+}
+
+getseconddisplay() {
+  DPINFO=$(xrandr | grep -v 'eDP-1' | grep ' connected')
+  if [ $? -ne 0 ]; then
+    exit $R
+  fi
+  echo "$DPINFO" | cut -d ' ' -f 1
+}
+
+case "$CMD" in
+  sinkid)
+    # prints pulseaudio sink id
+    getsinkid;;
+  winid)
+    # x window id for current pane
+    curwinid;;
+  seconddisplay)
+    # name of the non-laptop monitor
+    getseconddisplay;;
+  *) printusage "$0" && exit 1
+esac
