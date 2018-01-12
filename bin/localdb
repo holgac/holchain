@@ -1,28 +1,23 @@
 #!/usr/bin/env bash
-
-URL="127.0.0.1:3000/localdb"
+# Usage: localdb [KEY [VALUE]]
+DBFILE="$HOLCONFIGDIR/localdb.json"
+if [ ! -f "$DBFILE" ]; then
+  echo '{}' > "$DBFILE"
+fi
 
 if [ -z "$1" ]; then
-  RES=$(curl --fail "$URL/list" 2>/dev/null)
-  if [ $? -ne 0 ]; then
-    exit 1
-  fi
-  RES=$(urldecode "$RES")
-  echo "$RES" | jq .
-else
+  # Pretty-print everything on no input
+  cat "$DBFILE" | jq .
+elif [ -z "$2" ]; then
+  # Get result on single input
   KEY=$(urlencode "$1")
-  if [ -z "$2" ]; then
-    RES=$(curl --fail "$URL?key=$KEY" 2>/dev/null)
-    if [ $? -ne 0 ]; then
-      exit 1
-    fi
-    RES=$(urldecode "$RES")
-    echo "$RES"
-  else
-    VALUE=$(urlencode "$2")
-    RES=$(curl --fail "$URL/add?key=$KEY&value=$VALUE" 2>/dev/null)
-    if [ $? -ne 0 ]; then
-      exit 1
-    fi
-  fi
+  cat "$DBFILE" | jq '.["'"$KEY"'"]' 2>&1 | urldecode && printf "\n"
+else
+  # Set on two inputs
+  KEY=$(urlencode "$1")
+  VALUE=$(urlencode "$2")
+  echo "key: $KEY, value: $VALUE"
+  echo '. + {"'"$KEY"'": "'"$VALUE"'"}'
+  RES=$(cat "$DBFILE" | jq -c '. + {"'"$KEY"'": "'"$VALUE"'"}')
+  echo "$RES" > "$DBFILE"
 fi
