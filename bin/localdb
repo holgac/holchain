@@ -16,8 +16,6 @@ else
   # Set on two inputs
   KEY=$(urlencode "$1")
   VALUE=$(urlencode "$2")
-  echo "key: $KEY, value: $VALUE"
-  echo '. + {"'"$KEY"'": "'"$VALUE"'"}'
   RES=$(cat "$DBFILE" | jq -c '. + {"'"$KEY"'": "'"$VALUE"'"}')
   echo "$RES" > "$DBFILE"
 fi
