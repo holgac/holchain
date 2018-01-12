@@ -17,19 +17,16 @@ upmeta() {
 
 copy() {
   if sysinfo isterm; then
-    echo 'copying from term:'$(xsel -op) | systemd-cat
     xsel -op | xsel -ib
   else
     upmeta
     xdotool key 'Ctrl+c'
-    echo 'copying from non-term:'$(xsel -ob) | systemd-cat
     xsel -ob | xsel -ip
   fi
 }
 
 paste() {
   if sysinfo isterm; then
-    echo 'pasting to term:'$(xsel -op) | systemd-cat
     xdotool click 2
   else
     # Ctrl+v is actually a better solution for non-terminals
