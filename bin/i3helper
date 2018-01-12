@@ -10,6 +10,34 @@ lock() {
   i3lock -c 43203f -I 3 -f -d
 }
 
+upmeta() {
+  xdotool keyup meta
+  sleep 0.5
+}
+
+copy() {
+  if sysinfo isterm; then
+    echo 'copying from term:'$(xsel -op) | systemd-cat
+    xsel -op | xsel -ib
+  else
+    upmeta
+    xdotool key 'Ctrl+c'
+    echo 'copying from non-term:'$(xsel -ob) | systemd-cat
+    xsel -ob | xsel -ip
+  fi
+}
+
+paste() {
+  if sysinfo isterm; then
+    echo 'pasting to term:'$(xsel -op) | systemd-cat
+    xdotool click 2
+  else
+    # Ctrl+v is actually a better solution for non-terminals
+    upmeta
+    xdotool key 'Ctrl+v'
+  fi
+}
+
 case "$CMD" in
   lock)
     # locks the system, requires password to log back in
@@ -57,7 +85,13 @@ case "$CMD" in
   left)
     # sets external display to the left of the laptop screen
     xrandr --output $(sysinfo seconddisplay) --auto --left-of eDP-1 --primary
-    xrandr --output eDP-1 --mode '1360x768';;
+    xrandr --output eDP-1 --mode '1360x768' ;;
+  copy)
+    # copies the selection to clipboard
+    copy ;;
+  paste)
+    # pastes from clipboard
+    paste ;;
   scroff)
     # disables external display
     xrandr --output $(sysinfo seconddisplay) --off

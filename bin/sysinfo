@@ -32,6 +32,14 @@ getseconddisplay() {
   echo "$DPINFO" | cut -d ' ' -f 1
 }
 
+wincmd() {
+  cat /proc/$(winpid $(curwinid))/cmdline
+}
+
+isterm() {
+  wincmd | grep --quiet --ignore-case 'terminal'
+}
+
 case "$CMD" in
   sinkid)
     # prints pulseaudio sink id
@@ -44,7 +52,10 @@ case "$CMD" in
     winpid $(curwinid) ;;
   wincmd)
     # cmdline of the focused window
-    cat /proc/$(winpid $(curwinid))/cmdline ;;
+    wincmd ;;
+  isterm)
+    # exits with status 1 if focused window is a terminal, 0 otherwise
+    exit $(isterm) ;;
   seconddisplay)
     # name of the non-laptop monitor
     getseconddisplay;;

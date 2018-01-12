@@ -57,3 +57,5 @@ mode $mode_system {
     bindsym Escape mode "default"
 }
 bindsym $mod+p mode $mode_system
+bindsym $mod+c exec --no-startup-id i3helper copy, mode "default"
+bindsym $mod+v exec --no-startup-id i3helper paste, mode "default"
