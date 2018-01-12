@@ -20,6 +20,10 @@ curwinid() {
   xprop -root | awk '/_NET_ACTIVE_WINDOW\(WINDOW\)/{print $NF}'
 }
 
+winpid() {
+  xprop -id "$1" | awk '/_NET_WM_PID\(CARDINAL\)/{print $NF}'
+}
+
 getseconddisplay() {
   DPINFO=$(xrandr | grep -v 'eDP-1' | grep ' connected')
   if [ $? -ne 0 ]; then
@@ -35,6 +39,12 @@ case "$CMD" in
   winid)
     # x window id for current pane
     curwinid;;
+  winpid)
+    # pid of the focused window
+    winpid $(curwinid) ;;
+  wincmd)
+    # cmdline of the focused window
+    cat /proc/$(winpid $(curwinid))/cmdline ;;
   seconddisplay)
     # name of the non-laptop monitor
     getseconddisplay;;

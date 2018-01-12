@@ -7,6 +7,7 @@ RC_DIR=$(dirname "${BASH_SOURCE[0]}")
 REPO_DIR=$(dirname "$RC_DIR")
 source "$RC_DIR/common"
 export PATH="$PATH:$REPO_DIR/bin"
+export HOLCONFIGDIR="$HOME/.holchain"
 
 # Configuration for builtins {{{
 shopt -s checkwinsize
@@ -42,6 +43,7 @@ alias ls='ls --color=auto'
 alias ll='ls -la'
 alias mv='mv -i'
 alias sbp='source ~/.bashrc'
+alias rgrep='grep -r'
 
 #bash meta stuff
 # like `clear`, but cleaner if you scroll up

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+set -u
 DIR=$(dirname "$(readlink -f "$0")")
 FROMTO="$(dirname "$DIR")/bin/fromto"
 source "$DIR/common"
@@ -48,3 +49,4 @@ add_to "$I3CONFIG" "$DIR/i3config" "#"
 add_to "$TMUXCONFIG" "$DIR/tmuxconf" "#"
 
 mkdir -p "$HOME/screenshots"
+mkdir -p "$HOLCONFIGDIR"
