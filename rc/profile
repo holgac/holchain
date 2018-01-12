@@ -1,0 +1,7 @@
+if [ $_ = ${BASH_SOURCE[0]} ]; then
+  echo "You should source this file..."
+fi
+RC_DIR=$(dirname "${BASH_SOURCE[0]}")
+REPO_DIR=$(dirname "$RC_DIR")
+source "$RC_DIR/common"
+export PATH="$PATH:$REPO_DIR/bin"

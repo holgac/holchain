@@ -44,6 +44,7 @@ add_to() {
 }
 
 include_in "$BASHRC" "source $DIR/bashrc" "#"
+include_in "$PROFILE" "source $DIR/profile" "#"
 include_in "$VIMRC" "source $DIR/vimrc" '"'
 add_to "$I3CONFIG" "$DIR/i3config" "#"
 add_to "$TMUXCONFIG" "$DIR/tmuxconf" "#"
