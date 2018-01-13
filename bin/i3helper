@@ -83,15 +83,15 @@ case "$CMD" in
     # sets external display to the left of the laptop screen
     xrandr --output $(sysinfo seconddisplay) --auto --left-of eDP-1 --primary
     xrandr --output eDP-1 --mode '1360x768' ;;
+  scroff)
+    # disables external display
+    xrandr --output $(sysinfo seconddisplay) --off
+    xrandr --output eDP-1 --mode '1360x768';;
   copy)
     # copies the selection to clipboard
     copy ;;
   paste)
     # pastes from clipboard
     paste ;;
-  scroff)
-    # disables external display
-    xrandr --output $(sysinfo seconddisplay) --off
-    xrandr --output eDP-1 --mode '1360x768';;
   *) printusage "$0" && exit 1
 esac

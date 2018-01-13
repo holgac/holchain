@@ -10,10 +10,10 @@ include_in() {
   COMMENT_CHAR="$3"
   FULL_LINE="$LINE_TO_ADD $COMMENT_CHAR  Added by holchain"
   if grep --quiet "$FULL_LINE" "$DST_FILE"; then
-    echo "Already exists in $(basename $DST_FILE)"
+    echo "  Already exists in $(basename $DST_FILE)"
   else
     echo "$FULL_LINE" >> $DST_FILE
-    echo "Appended config to $(basename $DST_FILE)"
+    echo "  Appended config to $(basename $DST_FILE)"
   fi
 }
 
@@ -24,7 +24,7 @@ add_to() {
   BEGIN_LINE="$COMMENT_CHAR  Begin holchain block"
   END_LINE="$COMMENT_CHAR  End holchain block"
   if [ ! -e "$DST_FILE" ]; then
-    echo "$DST_FILE does not exist, skipping"
+    echo "  $DST_FILE does not exist, skipping"
     return
   fi
   grep --quiet "$BEGIN_LINE" "$DST_FILE"
@@ -37,17 +37,22 @@ add_to() {
   cp "$DST_FILE" "$FILE_TO_ADD.backup" || exit 1
   mv "$TMPFILE" "$DST_FILE"
   if [ $LINES_NOT_FOUND -eq 0 ]; then
-    echo "Updated config in $DST_FILE"
+    echo "  Updated config in $DST_FILE"
   else
-    echo "Added config to $DST_FILE"
+    echo "  Added config to $DST_FILE"
   fi
 }
 
+echo 'adding rc files'
 include_in "$BASHRC" "source $DIR/bashrc" "#"
 include_in "$PROFILE" "source $DIR/profile" "#"
 include_in "$VIMRC" "source $DIR/vimrc" '"'
 add_to "$I3CONFIG" "$DIR/i3config" "#"
 add_to "$TMUXCONFIG" "$DIR/tmuxconf" "#"
 
+echo 'creating directories'
 mkdir -p "$HOME/screenshots"
 mkdir -p "$HOLCONFIGDIR"
+
+echo 'updating system config'
+echo '/usr/local/bin' | sudo tee /etc/ld.so.conf.d/locallib > /dev/null
