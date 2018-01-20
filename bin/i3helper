@@ -60,7 +60,7 @@ case "$CMD" in
     if [ -z "$PROMPTED" ]; then
       exit 1;
     fi
-    localdb "prompt" "$PROMPTED" > /dev/null
+    localdb "prompt" "$PROMPTED"
     i3-msg 'mode "Are you sure?"';;
   execute)
     # executes the last prompted command

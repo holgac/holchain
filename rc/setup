@@ -55,4 +55,4 @@ mkdir -p "$HOME/screenshots"
 mkdir -p "$HOLCONFIGDIR"
 
 echo 'updating system config'
-echo '/usr/local/bin' | sudo tee /etc/ld.so.conf.d/locallib > /dev/null
+echo '/usr/local/lib' | sudo tee /etc/ld.so.conf.d/locallib.conf > /dev/null

@@ -11,7 +11,7 @@ if [ -z "$1" ]; then
 elif [ -z "$2" ]; then
   # Get result on single input
   KEY=$(urlencode "$1")
-  cat "$DBFILE" | jq '.["'"$KEY"'"]' 2>&1 | urldecode && printf "\n"
+  cat "$DBFILE" | jq '.["'"$KEY"'"]' 2>&1 | tr -d \" | urldecode && printf "\n"
 else
   # Set on two inputs
   KEY=$(urlencode "$1")
