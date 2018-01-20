@@ -9,9 +9,6 @@ urldecode() {
 if [ $# -eq 0 ]; then
   INP=$(cat /dev/stdin)
   urldecode "$INP"
-elif [ $# -eq 1 ]; then
-  urldecode "$BASH_ARGV"
 else
-  echo "$0 either reads from stdin or takes a single argumnet"
-  exit 1
+  urldecode "$*"
 fi

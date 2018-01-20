@@ -9,7 +9,7 @@ urlencode() {
   for (( i = 0; i < length; i++ )); do
     local c="${INP:i:1}"
     case $c in
-      [a-zA-Z0-9.~_-]) printf "$c" ;;
+      [a-zA-Z0-9.~_-]) printf '%s' "$c" ;;
       [\ ]) echo -n "$SPACE" ;;
       *) printf '%%%02X' "'$c" ;;
     esac
@@ -20,9 +20,6 @@ urlencode() {
 if [ $# -eq 0 ]; then
   INP=$(cat /dev/stdin)
   urlencode "$INP"
-elif [ $# -eq 1 ]; then
-  urlencode "${BASH_ARGV[*]}"
 else
-  echo "$0 either reads from stdin or takes a single argument"
-  exit 1
+  urlencode "$*"
 fi

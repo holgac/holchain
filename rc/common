@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-BASHRC="$HOME/.bashrc"
-VIMRC="$HOME/.vimrc"
-PROFILE="$HOME/.profile"
-I3CONFIG="$HOME/.config/i3/config"
-TMUXCONFIG="$HOME/.tmux.conf"
-HOLCONFIGDIR="$HOME/.holchain"
+export BASHRC="$HOME/.bashrc"
+export VIMRC="$HOME/.vimrc"
+export PROFILE="$HOME/.profile"
+export I3CONFIG="$HOME/.config/i3/config"
+export TMUXCONFIG="$HOME/.tmux.conf"
+export HOLCONFIGDIR="$HOME/.holchain"

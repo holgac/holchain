@@ -2,7 +2,9 @@
 set -u
 DIR=$(dirname "$(readlink -f "$0")")
 FROMTO="$(dirname "$DIR")/bin/fromto"
+# shellcheck source=/dev/null
 source "$DIR/common"
+sudo -k
 
 include_in() {
   DST_FILE="$1"
@@ -10,10 +12,10 @@ include_in() {
   COMMENT_CHAR="$3"
   FULL_LINE="$LINE_TO_ADD $COMMENT_CHAR  Added by holchain"
   if grep --quiet "$FULL_LINE" "$DST_FILE"; then
-    echo "  Already exists in $(basename $DST_FILE)"
+    echo "  Already exists in $(basename "$DST_FILE")"
   else
-    echo "$FULL_LINE" >> $DST_FILE
-    echo "  Appended config to $(basename $DST_FILE)"
+    echo "$FULL_LINE" >> "$DST_FILE"
+    echo "  Appended config to $(basename "$DST_FILE")"
   fi
 }
 
@@ -30,10 +32,13 @@ add_to() {
   grep --quiet "$BEGIN_LINE" "$DST_FILE"
   LINES_NOT_FOUND=$?
   TMPFILE=$(mktemp)
-  cat "$DST_FILE" | . "$FROMTO" -vft "$BEGIN_LINE" "$END_LINE" > "$TMPFILE"
-  echo "$BEGIN_LINE" >> "$TMPFILE"
-  cat "$FILE_TO_ADD" >> "$TMPFILE"
-  echo "$END_LINE" >> "$TMPFILE"
+  # shellcheck source=/dev/null
+  {
+    . "$FROMTO" -vft "$BEGIN_LINE" "$END_LINE" < "$DST_FILE"
+    echo "$BEGIN_LINE"
+    cat "$FILE_TO_ADD"
+    echo "$END_LINE"
+  } >> "$TMPFILE"
   cp "$DST_FILE" "$FILE_TO_ADD.backup" || exit 1
   mv "$TMPFILE" "$DST_FILE"
   if [ $LINES_NOT_FOUND -eq 0 ]; then
@@ -43,6 +48,20 @@ add_to() {
   fi
 }
 
+write_to() {
+  DST_FILE="$1"
+  LINE="$2"
+  ACTING_USER="$3"
+  if [ -f "$DST_FILE" ]; then
+    if [ "$LINE" = "$(cat "$DST_FILE")" ]; then
+      echo "  $DST_FILE is up to date"
+      return
+    fi
+  fi
+  echo "$LINE" | sudo -u "$ACTING_USER" tee "$DST_FILE" > /dev/null
+  echo "  Updated $DST_FILE"
+}
+
 echo 'adding rc files'
 include_in "$BASHRC" "source $DIR/bashrc" "#"
 include_in "$PROFILE" "source $DIR/profile" "#"
@@ -50,9 +69,9 @@ include_in "$VIMRC" "source $DIR/vimrc" '"'
 add_to "$I3CONFIG" "$DIR/i3config" "#"
 add_to "$TMUXCONFIG" "$DIR/tmuxconf" "#"
 
+echo 'updating system config'
+write_to '/etc/ld.so.conf.d/locallib.conf' '/usr/local/lib' 'root'
+
 echo 'creating directories'
 mkdir -p "$HOME/screenshots"
 mkdir -p "$HOLCONFIGDIR"
-
-echo 'updating system config'
-echo '/usr/local/lib' | sudo tee /etc/ld.so.conf.d/locallib.conf > /dev/null

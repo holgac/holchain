@@ -1,8 +1,11 @@
-if [ $_ = ${BASH_SOURCE[0]} ]; then
+#!/usr/bin/env bash
+if [ "$_" = "${BASH_SOURCE[0]}" ]; then
   echo "You should source this file..."
+  exit 1
 fi
 RC_DIR=$(dirname "${BASH_SOURCE[0]}")
 REPO_DIR=$(dirname "$RC_DIR")
+# shellcheck source=/dev/null
 source "$RC_DIR/common"
 export PATH="$PATH:$REPO_DIR/bin"
 export HOLCONFIGDIR="$HOME/.holchain"

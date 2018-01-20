@@ -7,15 +7,15 @@ fi
 
 if [ -z "$1" ]; then
   # Pretty-print everything on no input
-  cat "$DBFILE" | jq .
+  jq . < "$DBFILE"
 elif [ -z "$2" ]; then
   # Get result on single input
   KEY=$(urlencode "$1")
-  cat "$DBFILE" | jq '.["'"$KEY"'"]' 2>&1 | tr -d \" | urldecode && printf "\n"
+  jq '.["'"$KEY"'"]' 2>&1 < "$DBFILE" | tr -d \" | urldecode && printf "\\n"
 else
   # Set on two inputs
   KEY=$(urlencode "$1")
   VALUE=$(urlencode "$2")
-  RES=$(cat "$DBFILE" | jq -c '. + {"'"$KEY"'": "'"$VALUE"'"}')
+  RES=$(jq -c '. + {"'"$KEY"'": "'"$VALUE"'"}' < "$DBFILE")
   echo "$RES" > "$DBFILE"
 fi

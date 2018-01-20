@@ -8,8 +8,7 @@ fi
 
 getsinkid() {
   SINKS=$(pactl list short sinks)
-  BLUEZ=$(echo "$SINKS" | grep bluez_sink)
-  if [ $? -eq 0 ]; then
+  if echo "$SINKS" | grep --quiet bluez_sink; then
     echo "$BLUEZ" | head -n 1 | cut -f 1
   else
     echo "$SINKS" | head -n 1 | cut -f 1
@@ -25,15 +24,14 @@ winpid() {
 }
 
 getseconddisplay() {
-  DPINFO=$(xrandr | grep -v 'eDP-1' | grep ' connected')
-  if [ $? -ne 0 ]; then
-    exit $R
+  if DPINFO=$(xrandr | grep -v 'eDP-1' | grep ' connected'); then
+    echo "$DPINFO" | cut -d ' ' -f 1
   fi
-  echo "$DPINFO" | cut -d ' ' -f 1
+  exit 1
 }
 
 wincmd() {
-  cat /proc/$(winpid $(curwinid))/cmdline
+  cat "/proc/$(winpid "$(curwinid)")/cmdline"
 }
 
 isterm() {
@@ -49,13 +47,13 @@ case "$CMD" in
     curwinid;;
   winpid)
     # pid of the focused window
-    winpid $(curwinid) ;;
+    winpid "$(curwinid)";;
   wincmd)
     # cmdline of the focused window
     wincmd ;;
   isterm)
     # exits with status 1 if focused window is a terminal, 0 otherwise
-    exit $(isterm) ;;
+    isterm ;;
   seconddisplay)
     # name of the non-laptop monitor
     getseconddisplay;;
