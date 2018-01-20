@@ -65,12 +65,24 @@ npminfo () {
     | jq '{name,description,license,version}'
 }
 
+# get current timestamp, or pretty print given timestamp
 ts () {
   if [ -z $1 ]; then
     date '+%s'
   else
     date -d "@$1"
   fi
+}
+
+# validate a json file or object
+jqv () {
+  INP="$@"
+  if [ -f "$INP" ]; then
+    INP=$(cat "$INP")
+  elif [ -z "$INP" ]; then
+    INP=$(cat /dev/stdin)
+  fi
+  echo "$INP" | jq . >/dev/null
 }
 
 # groups by given json lines and prints counts
