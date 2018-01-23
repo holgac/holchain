@@ -57,7 +57,7 @@ alias cln='for i in $(seq $(tput lines)); do printf "\n"; done'
 alias ffs='pygmentize -g'
 alias hpd='hphpd -h localhost'
 alias GEET='GET http://localhost/status.php'
-alias cdd='cd "${DATAFOLDER-~/develop}'
+alias cdd='cd "${DATAFOLDER-~/develop}"'
 alias holbinlog='mysqlbinlog -vv --base64-output=decode-rows'
 # cheat sheet for i3
 alias i3cheat='grep -Ev -e "^ *#" -e "^ *$" < "$I3CONFIG" | sed -re "s/^  +/  /g" -e "s/^( *)bindsym /\1/g" -e "s/ exec (--no-startup-id)/ =>/g"'
