@@ -93,3 +93,8 @@ jqv () {
 groupby () {
   jq "$1" | sort | uniq -c
 }
+
+# filters files that contain the given string, like `find . | filef filter1 | filef filter2`
+ff() {
+  while read r; do if grep -q "$1" "$r"; then echo "$r"; fi; done
+}
