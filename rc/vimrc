@@ -65,7 +65,7 @@ hi Comment ctermfg=Cyan
 execute pathogen#infect()
 let g:HardMode_level = 'wannabe' 
 autocmd VimEnter,BufNewFile,BufReadPost * silent! call HardMode()
-let NERDTreeIgnore=['\.d$[[file]]', '\.o$[[file]]']
+let NERDTreeIgnore=['\.d$[[file]]', '\.o$[[file]]', '\.out$[[file]]']
 nnoremap <C-n> :NERDTreeToggle<CR>
 nmap <silent> <Leader>r <Plug>(CommandT)
 " }}}
