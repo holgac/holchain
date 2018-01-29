@@ -48,6 +48,7 @@ alias ll='ls -la'
 alias mv='mv -i'
 alias sbp='source ~/.bashrc'
 alias rgrep='grep -r'
+alias less='less -R'
 
 #bash meta stuff
 # like `clear`, but cleaner if you scroll up
@@ -95,6 +96,10 @@ groupby () {
 }
 
 # filters files that contain the given string, like `find . | filef filter1 | filef filter2`
-ff() {
+ff () {
   while read r; do if grep -q "$1" "$r"; then echo "$r"; fi; done
+}
+
+lefs () {
+  pygmentize "$1" | less -R
 }
