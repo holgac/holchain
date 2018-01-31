@@ -62,6 +62,22 @@ write_to() {
   echo "  Updated $DST_FILE"
 }
 
+vim_plugin() {
+  GIT_URL="$1"
+  BUNDLE_PATH="$HOME/.vim/bundle"
+  mkdir -p "$BUNDLE_PATH"
+  PACKAGE_NAME=$(echo "$GIT_URL" | sed -E 's:^.*/(.+)\.git:\1:')
+  TARGET_PATH="$BUNDLE_PATH/$PACKAGE_NAME"
+  if [ -d "$TARGET_PATH" ]; then
+    echo "  vim plugin $PACKAGE_NAME already exists"
+  elif [ ! -e "$TARGET_PATH" ]; then
+    echo "  getting vim plugin $PACKAGE_NAME"
+    git clone "$GIT_URL" "$TARGET_PATH"
+  else
+    echo "  vim plugin $PACKAGE_NAME cannot be downloaded"
+  fi
+}
+
 echo 'adding rc files'
 include_in "$BASHRC" "source $DIR/bashrc" "#"
 include_in "$PROFILE" "source $DIR/profile" "#"
@@ -75,3 +91,9 @@ write_to '/etc/ld.so.conf.d/locallib.conf' '/usr/local/lib' 'root'
 echo 'creating directories'
 mkdir -p "$HOME/screenshots"
 mkdir -p "$HOLCONFIGDIR"
+
+echo 'downloading vim plugins'
+vim_plugin 'https://github.com/wikitopian/hardmode.git'
+vim_plugin 'https://github.com/scrooloose/nerdtree.git'
+vim_plugin 'https://github.com/theevocater/thrift.vim.git'
+vim_plugin 'https://github.com/wincent/command-t.git'
