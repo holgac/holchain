@@ -99,15 +99,24 @@ groupby () {
   jq "$1" | sort | uniq -c
 }
 
-# filters files that contain the given string, like `find . | filef filter1 | filef filter2`
+# chainable rgrep
 ff () {
-  while read r; do if grep -q "$1" "$r"; then echo "$r"; fi; done
+  if [ -t 0 ]; then
+    find . -type f | ff "$1"
+  elif [ -t 1 ] || [ "$2" = "stdout" ]; then
+    while read r; do
+      cat -n "$r" | grep "$1" | tr '\t' ' ' \
+        | sed -En 's:[ \t]*([0-9]+)[ \t]*:'"$r"'\:\1 ==>  :p' \
+        | grep --color=always "$1"
+    done
+  else
+    while read r; do if grep -q "$1" "$r"; then echo "$r"; fi; done
+  fi
 }
 
 lefs () {
   pygmentize "$1" | less -R
 }
-
 
 ip2a () {
   nslookup "$1" | sed -nE 's/^.*name = (.*)\.$/\1/gp'
