@@ -84,6 +84,7 @@ vim_plugin() {
 }
 
 echo 'adding rc files'
+# TODO: had to do this to ~/.bash_profile on mac, check bash version
 include_in "$BASHRC" "source $DIR/bashrc" "#"
 include_in "$PROFILE" "source $DIR/profile" "#"
 include_in "$VIMRC" "source $DIR/vimrc" '"'
@@ -101,10 +102,14 @@ mkdir -p "$HOLCONFIGDIR"
 
 echo 'downloading vim plugins'
 if [ ! -e ~/.vim/autoload ]; then
-  mkdir -p ~/.vim/autoload
+  mkdir -p ~/.vim/autoload ~/.vim/bundle
   curl -LSso ~/.vim/autoload/pathogen.vim https://tpo.pe/pathogen.vim
 fi
 vim_plugin 'https://github.com/wikitopian/hardmode.git'
 vim_plugin 'https://github.com/scrooloose/nerdtree.git'
 vim_plugin 'https://github.com/theevocater/thrift.vim.git'
 vim_plugin 'https://github.com/wincent/command-t.git'
+# irssi stuff
+echo 'downloading irssi plugins'
+mkdir -p ~/.irssi/scripts
+curl -LSso ~/.irssi/scripts/nickcolor.pl https://raw.githubusercontent.com/vigith/random/master/irssi/nickcolor.pl

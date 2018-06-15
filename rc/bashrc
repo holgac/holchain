@@ -108,10 +108,9 @@ ff () {
   elif [ -t 1 ] || [ "$2" = "stdout" ]; then
     while read r; do
       cat -n "$r" | grep "$1" | tr '\t' ' ' \
-        | sed -En 's: *([0-9]+) *(!?[^ ]):'"$r"'\:\1  \2:gp' \
-        | grep "$1"
+        | sed -En 's:[ \t]*([0-9]+)[ \t]*:'"$r"'\:\1 ==>  :p' \
+        | grep --color=always "$1"
     done
-    exit 0
   else
     while read r; do if grep -q "$1" "$r"; then echo "$r"; fi; done
   fi
@@ -119,4 +118,8 @@ ff () {
 
 lefs () {
   pygmentize "$1" | less -R
+}
+
+ip2a () {
+  nslookup "$1" | sed -nE 's/^.*name = (.*)\.$/\1/gp'
 }
