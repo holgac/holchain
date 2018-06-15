@@ -76,3 +76,86 @@ call RepeatN("t", ":tabnext<CR>")
 call RepeatN("T", ":tabprevious<CR>")
 call RepeatN("q", ":quit<CR>")
 " }}}
+
+" pluginish operations {{{
+python << EOF
+import vim
+import re
+class PathFinder:
+  @staticmethod
+  def path_in_ff():
+    buf = vim.current.buffer
+    cur = vim.current.window.cursor
+    line = vim.current.buffer[cur[0] - 1]
+    first = line.split(' ')[0]
+    elems = first.split(':')
+    return (elems[0], elems[1], 1)
+
+  @staticmethod
+  def path_under_cursor():
+    buf = vim.current.buffer
+    cur = vim.current.window.cursor
+    line = vim.current.buffer[cur[0] - 1]
+    # check if whitespace
+    cchar = line[cur[1]]
+    if cchar == ' ' or cchar == '\t':
+      vim.current.buffer.append('wtf', cur[0])
+      return
+    left = line[:cur[1]]
+    right = line[cur[1]:]
+    regex = '^([\w/\.]*).*$'
+    left = re.match(regex, left[::-1]).groups()[0]
+    right = re.match(regex, right).groups()[0]
+    path = left[::-1] + right
+    return (path, 1, 1)
+
+
+class RunData:
+  def __init(self):
+    self.target_winid = None
+    self.path_fetcher = None
+
+  def open_window(self):
+    self.target_winid = vim.eval('win_getid()')
+    args = ' '.join(str(i) for i in vim.eval('a:000'))
+    height = '15'
+    vim.command('botright ' + height + 'new')
+    vim.command('setlocal buftype=nofile bufhidden=hide noswapfile')
+    vim.command('read !' + args)
+    vim.command('setlocal readonly nomodifiable')
+    vim.command('call cursor(1,1)')
+    vim.command('noremap <buffer> q :q<CR>')
+    # TODO: preview
+    # vim.command('noremap <buffer> p :call PreviewClick()<CR>')
+    vim.command('noremap <buffer> <CR> :call RunSelect()<CR>')
+    self.path_fetcher = PathFinder.path_under_cursor
+    # TODO: prevent leaving the window
+
+  def on_select(self):
+    (path, cx, cy) = self.path_fetcher()
+    print 'path: ', path
+    # close current buffer
+    vim.command('quit')
+    vim.command('call win_gotoid(' + self.target_winid + ')')
+    vim.command('edit ' + path)
+    vim.command('call cursor(' + str(cx) + ', ' + str(cy) + ')')
+
+run_data = RunData()
+EOF
+
+function! Run(...)
+python << EOF
+run_data.open_window()
+EOF
+endfunction
+
+function! RunSelect(...)
+python << EOF
+run_data.on_select()
+EOF
+endfunction
+
+command! -nargs=+ Run call Run("<args>")
+
+
+" }}}

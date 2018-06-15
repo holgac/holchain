@@ -43,12 +43,18 @@ export VISUAL=vim
 # Aliases {{{
 
 # aliases for coreutils
-alias ls='ls --color=auto'
-alias ll='ls -la'
+if [ $(uname) = 'Darwin' ]; then
+  alias ls='ls -G'
+else
+  alias ls='ls --color=auto'
+fi
+alias ll='ls -lathor'
 alias mv='mv -i'
 alias sbp='source ~/.bashrc'
 alias rgrep='grep -r'
+alias grep='grep --color=auto'
 alias less='less -R'
+alias curl='curl -LSs'
 
 #bash meta stuff
 # like `clear`, but cleaner if you scroll up
@@ -58,7 +64,7 @@ alias cln='for i in $(seq $(tput lines)); do printf "\n"; done'
 alias ffs='pygmentize -g'
 alias hpd='hphpd -h localhost'
 alias GEET='GET http://localhost/status.php'
-alias cdd='cd "${DATAFOLDER-~/develop}"'
+alias cdd='cd "${DATAFOLDER-$(realpath ~)/develop}"'
 alias holbinlog='mysqlbinlog -vv --base64-output=decode-rows'
 # cheat sheet for i3
 alias i3cheat='grep -Ev -e "^ *#" -e "^ *$" < "$I3CONFIG" | sed -re "s/^  +/  /g" -e "s/^( *)bindsym /\1/g" -e "s/ exec (--no-startup-id)/ =>/g"'
@@ -95,9 +101,20 @@ groupby () {
   jq "$1" | sort | uniq -c
 }
 
-# filters files that contain the given string, like `find . | filef filter1 | filef filter2`
+# chainable rgrep
 ff () {
-  while read r; do if grep -q "$1" "$r"; then echo "$r"; fi; done
+  if [ -t 0 ]; then
+    find . -type f | ff "$1" "$2"
+  elif [ -t 1 ] || [ "$2" = "stdout" ]; then
+    while read r; do
+      cat -n "$r" | grep "$1" | tr '\t' ' ' \
+        | sed -En 's: *([0-9]+) *(!?[^ ]):'"$r"'\:\1  \2:gp' \
+        | grep "$1"
+    done
+    exit 0
+  else
+    while read r; do if grep -q "$1" "$r"; then echo "$r"; fi; done
+  fi
 }
 
 lefs () {

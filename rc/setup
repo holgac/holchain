@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 set -u
-DIR=$(dirname "$(readlink -f "$0")")
+if [ $(uname) = 'Darwin' ]; then
+  # TODO: test in linux
+  DIR=$(dirname $(realpath "$0"))
+else
+  DIR=$(dirname "$(readlink -f "$0")")
+fi
 FROMTO="$(dirname "$DIR")/bin/fromto"
 # shellcheck source=/dev/null
 source "$DIR/common"
@@ -85,14 +90,20 @@ include_in "$VIMRC" "source $DIR/vimrc" '"'
 add_to "$I3CONFIG" "$DIR/i3config" "#"
 add_to "$TMUXCONFIG" "$DIR/tmuxconf" "#"
 
-echo 'updating system config'
-write_to '/etc/ld.so.conf.d/locallib.conf' '/usr/local/lib' 'root'
+if [ $(uname) != 'Darwin' ]; then
+  echo 'updating system config'
+  write_to '/etc/ld.so.conf.d/locallib.conf' '/usr/local/lib' 'root'
+fi
 
 echo 'creating directories'
 mkdir -p "$HOME/screenshots"
 mkdir -p "$HOLCONFIGDIR"
 
 echo 'downloading vim plugins'
+if [ ! -e ~/.vim/autoload ]; then
+  mkdir -p ~/.vim/autoload
+  curl -LSso ~/.vim/autoload/pathogen.vim https://tpo.pe/pathogen.vim
+fi
 vim_plugin 'https://github.com/wikitopian/hardmode.git'
 vim_plugin 'https://github.com/scrooloose/nerdtree.git'
 vim_plugin 'https://github.com/theevocater/thrift.vim.git'
