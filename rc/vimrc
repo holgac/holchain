@@ -64,7 +64,10 @@ hi Comment ctermfg=Cyan
 " plugin config {{{
 execute pathogen#infect()
 let g:HardMode_level = 'wannabe' 
-autocmd VimEnter,BufNewFile,BufReadPost * silent! call HardMode()
+augroup vimrc
+  autocmd!
+  autocmd VimEnter,BufNewFile,BufReadPost * silent! call HardMode()
+augroup END
 let NERDTreeIgnore=['\.d$[[file]]', '\.o$[[file]]', '\.out$[[file]]']
 nnoremap <C-n> :NERDTreeToggle<CR>
 nmap <silent> <Leader>r <Plug>(CommandT)
@@ -92,28 +95,51 @@ class PathFinder:
     return (elems[0], elems[1], 1)
 
   @staticmethod
-  def path_under_cursor():
+  def wordpos_under_cursor():
     buf = vim.current.buffer
     cur = vim.current.window.cursor
     line = vim.current.buffer[cur[0] - 1]
     # check if whitespace
+    if len(line) is 0:
+      return
     cchar = line[cur[1]]
     if cchar == ' ' or cchar == '\t':
       vim.current.buffer.append('wtf', cur[0])
+      # TODO: throw
       return
     left = line[:cur[1]]
     right = line[cur[1]:]
     regex = '^([\w/\.]*).*$'
-    left = re.match(regex, left[::-1]).groups()[0]
-    right = re.match(regex, right).groups()[0]
-    path = left[::-1] + right
-    return (path, 1, 1)
+    leftw = re.match(regex, left[::-1]).groups()[0]
+    rightw = re.match(regex, right).groups()[0]
+    return (cur[0] - 1, len(left) - len(leftw), len(left) + len(rightw))
+
+  @staticmethod
+  def path_under_cursor():
+    buf = vim.current.buffer
+    data = PathFinder.wordpos_under_cursor()
+    if data is None:
+      return
+    (linenum, start, end) = data
+    line = buf[linenum]
+    path = line[start:end]
+    regex = '^:(\d+)(:(\d+))?'
+    right = line[end:]
+    (line, col) = (0, 0)
+    res = re.match(regex, right)
+    if res:
+      line = int(res.groups()[0])
+      if len(res.groups()) == 3 and res.groups()[2] is not None:
+        col = int(res.groups()[2])
+    return (path, line, col)
 
 
 class RunData:
-  def __init(self):
+  def __init__(self):
+    self.match_id = None
     self.target_winid = None
-    self.path_fetcher = None
+    self.path_fetcher = PathFinder.path_under_cursor
+    self.wordpos_under_cursor = PathFinder.wordpos_under_cursor
 
   def open_window(self):
     self.target_winid = vim.eval('win_getid()')
@@ -124,34 +150,76 @@ class RunData:
     vim.command('read !' + args)
     vim.command('setlocal readonly nomodifiable')
     vim.command('call cursor(1,1)')
-    vim.command('noremap <buffer> q :q<CR>')
+    vim.command('noremap <buffer> q :call RunQuit()<CR>')
+    vim.command('noremap <buffer> : :call RunQuit()<CR>:')
     # TODO: preview
     # vim.command('noremap <buffer> p :call PreviewClick()<CR>')
     vim.command('noremap <buffer> <CR> :call RunSelect()<CR>')
-    self.path_fetcher = PathFinder.path_under_cursor
-    # TODO: prevent leaving the window
+    vim.command('augroup rundata')
+    vim.command('autocmd rundata BufLeave * silent! call RunQuit()')
+    vim.command('autocmd rundata CursorMoved * silent! call RunCursorMoved()')
+    vim.command('augroup END')
+    vim.command('highlight RunHover ctermfg=red cterm=underline,bold,italic')
+    self.on_cursor_moved()
+
+  def on_quit(self):
+    vim.command('quit')
+    self.cleanup()
+
+  def on_cursor_moved(self):
+    if self.match_id is not None:
+      vim.command('call matchdelete({})'.format(self.match_id))
+      self.match_id = None
+    data = self.wordpos_under_cursor()
+    if data is None:
+      return
+    (linenum, start, end) = data
+    self.match_id = vim.eval(
+      "matchaddpos('RunHover', [[{},{},{}]])".format(linenum + 1, start + 1, end - start),
+    )
 
   def on_select(self):
-    (path, cx, cy) = self.path_fetcher()
-    print 'path: ', path
+    data = self.path_fetcher()
+    if data is None:
+      return
+    (path, cx, cy) = data
     # close current buffer
     vim.command('quit')
     vim.command('call win_gotoid(' + self.target_winid + ')')
     vim.command('edit ' + path)
     vim.command('call cursor(' + str(cx) + ', ' + str(cy) + ')')
+    self.cleanup()
 
-run_data = RunData()
+  def cleanup(self):
+    vim.command('augroup rundata')
+    vim.command('autocmd! rundata')
+    vim.command('augroup END')
+    vim.command('highlight clear RunHover')
+
 EOF
 
 function! Run(...)
 python << EOF
+run_data = RunData()
 run_data.open_window()
+EOF
+endfunction
+
+function! RunQuit(...)
+python << EOF
+run_data.on_quit()
 EOF
 endfunction
 
 function! RunSelect(...)
 python << EOF
 run_data.on_select()
+EOF
+endfunction
+
+function! RunCursorMoved(...)
+python << EOF
+run_data.on_cursor_moved()
 EOF
 endfunction
 

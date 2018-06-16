@@ -106,11 +106,16 @@ ff () {
   if [ -t 0 ]; then
     find . -type f | ff "$1" "$2"
   elif [ -t 1 ] || [ "$2" = "stdout" ]; then
+    local ret_code=1
     while read r; do
       cat -n "$r" | grep "$1" | tr '\t' ' ' \
         | sed -En 's:[ \t]*([0-9]+)[ \t]*:'"$r"'\:\1 ==>  :p' \
-        | grep --color=always "$1"
+        | grep "$1"
+      if [ $? -eq 0 ]; then
+        ret_code=0
+      fi
     done
+    exit "$ret_code"
   else
     while read r; do if grep -q "$1" "$r"; then echo "$r"; fi; done
   fi
