@@ -9,29 +9,54 @@ RC_DIR=$(dirname "${BASH_SOURCE[0]}")
 REPO_DIR=$(dirname "$RC_DIR")
 # shellcheck source=/dev/null
 source "$RC_DIR/common"
-export PATH="$PATH:$REPO_DIR/bin"
+source "$RC_DIR/bashrcemoji"
+add_to_path () {
+  local out
+  if out=$(echo "$1:$PATH" | tr : \\n | grep -Ev '^$' | awk '!m[$0]++' | tr \\n :); then
+    echo "${out%:}"
+  else
+    echo "$PATH"
+  fi
+}
+
+PATH=$(add_to_path '/usr/local/bin')
+if [ "$(uname)" = 'Darwin' ]; then
+  PATH=$(add_to_path '/usr/local/opt/coreutils/libexec/gnubin')
+fi
+PATH=$(add_to_path "$REPO_DIR/bin")
+export PATH
+
+
+#export PATH=$(echo $PATH | tr ':' '\n' | grep -v "$1" | tr '\n' ':' |\
+#  sed -E 's/$(.*):$/'"$REPO_DIR/bin:/usr/local/bin:$PATH"'\1/')
 export HOLCONFIGDIR="$HOME/.holchain"
+
 
 # Configuration for builtins {{{
 shopt -s checkwinsize
 
 holgac_ps_fn () {
   # shellcheck disable=SC2181
-  if [ $? -eq 0 ]; then
-    ST=' :)'
-  else
-    ST=' :('
-  fi
-  DATE=$(date '+%I:%M ' | tr -d '\n')
-  DIR=$(dirs | tr -d '\n')
-  OUT="$DATE$DIR$ST"
+  local exitcode="$?"
+  local curdate
+  curdate=$(date '+%I:%M' | tr -d '\n')
+  local cwd
+  cwd=$(dirs | tr -d '\n')
   # ps_helper can be a user defined function that formats the path
   if type ps_helper 2>/dev/null 1>/dev/null; then
-    OUT=$(ps_helper "$OUT")
+    cwd=$(ps_helper "$cwd")
   fi
-  echo -en "$OUT"
+  printf '\[%s\]' "$(tput bold)"
+  printf '\[%s\]%s ' "$(tput setaf 6)" "$curdate"
+  printf '\[%s\]%s ' "$(tput setaf 5)" "$cwd"
+  print_status_line "$exitcode"
+  printf '\[%s\]' "$(tput sgr 0)"
 }
-export PS1="\$(holgac_ps_fn)"
+
+set_bash_prompt () {
+  PS1="$(holgac_ps_fn)"
+}
+export PROMPT_COMMAND=set_bash_prompt
 export HISTCONTROL='ignoreboth'
 # }}}
 
@@ -43,7 +68,7 @@ export VISUAL=vim
 # Aliases {{{
 
 # aliases for coreutils
-if [ $(uname) = 'Darwin' ]; then
+if [ "$(uname)" = 'Darwin' ]; then
   alias ls='ls -G'
 else
   alias ls='ls --color=auto'
@@ -103,21 +128,21 @@ groupby () {
 
 # chainable rgrep
 ff () {
+  ARG2=${2:-}
   if [ -t 0 ]; then
-    find . -type f | ff "$1" "$2"
+    find . -type f | ff "$1" "$ARG2"
   elif [ -t 1 ] || [ "$2" = "stdout" ]; then
     local ret_code=1
-    while read r; do
-      cat -n "$r" | grep "$1" | tr '\t' ' ' \
+    while read -r r; do
+      if cat -n "$r" | grep "$ARG2" | tr '\t' ' ' \
         | sed -En 's:[ \t]*([0-9]+)[ \t]*:'"$r"'\:\1 ==>  :p' \
-        | grep "$1"
-      if [ $? -eq 0 ]; then
+        | grep "$1"; then
         ret_code=0
       fi
     done
     exit "$ret_code"
   else
-    while read r; do if grep -q "$1" "$r"; then echo "$r"; fi; done
+    while read -r r; do if grep --quiet "$1" "$r"; then echo "$r"; fi; done
   fi
 }
 
@@ -127,4 +152,16 @@ lefs () {
 
 ip2a () {
   nslookup "$1" | sed -nE 's/^.*name = (.*)\.$/\1/gp'
+}
+
+tee2tmp () {
+  local tmp
+  tmp=$(mktemp)
+  trap '(>&2 tput setaf 1; printf %s\n $tmp; tput sgr0; exit 1; )' SIGINT SIGTERM
+  (>&2 tput setaf 1; printf '%s\n' "$tmp"; tput sgr0; )
+  tee "$tmp"
+  (>&2 tput setaf 1; printf '%s\n' "$tmp"; tput sgr0; )
+  if [ -n "$1" ]; then
+    eval "$1 $tmp"
+  fi
 }

@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-set -u
+set -o nounset -o errexit -o pipefail
+
 if [ $(uname) = 'Darwin' ]; then
   # TODO: test in linux
   DIR=$(dirname $(realpath "$0"))
@@ -9,9 +10,10 @@ fi
 FROMTO="$(dirname "$DIR")/bin/fromto"
 # shellcheck source=/dev/null
 source "$DIR/common"
+FORCEREINSTALL=${FORCEREINSTALL:}
 sudo -k
 
-include_in() {
+add_line_to() {
   DST_FILE="$1"
   LINE_TO_ADD="$2"
   COMMENT_CHAR="$3"
@@ -75,19 +77,22 @@ vim_plugin() {
   TARGET_PATH="$BUNDLE_PATH/$PACKAGE_NAME"
   if [ -d "$TARGET_PATH" ]; then
     echo "  vim plugin $PACKAGE_NAME already exists"
+    return 1
   elif [ ! -e "$TARGET_PATH" ]; then
     echo "  getting vim plugin $PACKAGE_NAME"
     git clone "$GIT_URL" "$TARGET_PATH"
+    return 0
   else
     echo "  vim plugin $PACKAGE_NAME cannot be downloaded"
+    return 1
   fi
 }
 
 echo 'adding rc files'
 # TODO: had to do this to ~/.bash_profile on mac, check bash version
-include_in "$BASHRC" "source $DIR/bashrc" "#"
-include_in "$PROFILE" "source $DIR/profile" "#"
-include_in "$VIMRC" "source $DIR/vimrc" '"'
+add_line_to "$BASHRC" "source $DIR/bashrc" "#"
+add_line_to "$PROFILE" "source $DIR/profile" "#"
+add_line_to "$VIMRC" "source $DIR/vimrc" '"'
 add_to "$I3CONFIG" "$DIR/i3config" "#"
 add_to "$TMUXCONFIG" "$DIR/tmuxconf" "#"
 
@@ -100,16 +105,78 @@ echo 'creating directories'
 mkdir -p "$HOME/screenshots"
 mkdir -p "$HOLCONFIGDIR"
 
+download_to () {
+  local target="$1"
+  local url="$2"
+  local path=$(dirname "$target")
+  local name=$(basename "$target")
+  if [ -e "$target" ]; then
+    echo "  $name exists, skipping"
+    return 1
+  fi
+  mkdir -p "$path"
+  curl -LSso "$target" "$url"
+  echo "  $name downloaded"
+  return 0
+}
+
 echo 'downloading vim plugins'
-if [ ! -e ~/.vim/autoload ]; then
-  mkdir -p ~/.vim/autoload ~/.vim/bundle
-  curl -LSso ~/.vim/autoload/pathogen.vim https://tpo.pe/pathogen.vim
-fi
+download_to ~/.vim/autoload/pathogen.vim https://tpo.pe/pathogen.vim
 vim_plugin 'https://github.com/wikitopian/hardmode.git'
 vim_plugin 'https://github.com/scrooloose/nerdtree.git'
 vim_plugin 'https://github.com/theevocater/thrift.vim.git'
-vim_plugin 'https://github.com/wincent/command-t.git'
+if vim_plugin 'https://github.com/wincent/command-t.git'; then
+  (cd $HOME/.vim/bundle/command-t/ruby/command-t/ext/command-t; ruby extconf.rb;  make; )
+fi
 # irssi stuff
 echo 'downloading irssi plugins'
 mkdir -p ~/.irssi/scripts
-curl -LSso ~/.irssi/scripts/nickcolor.pl https://raw.githubusercontent.com/vigith/random/master/irssi/nickcolor.pl
+download_to $HOME/.irssi/scripts/nickcolor.pl https://raw.githubusercontent.com/vigith/random/master/irssi/nickcolor.pl
+
+brew_install () {
+  local cur=$(brew list -1)
+  local args=($*)
+  for p in ${args[@]}; do
+    if echo "$cur" | grep --no-messages --quiet $p; then
+      echo "  $p already installed"
+      continue
+    fi
+    brew install "$p" --with-default-names
+    echo "  $p installed"
+  done
+}
+
+if [ $(uname) = 'Darwin' ]; then
+  brew_install gcc coreutils binutils diffutils ed findutils gawk gnu-indent \
+    gnu-sed gnu-tar gnu-which gnutls grep gzip watch wdiff wget bash gdb \
+    gpatch less m4 make file-formula git openssh perl python
+  add_line_to "$GDBCONFIG" 'set startup-with-shell off' '#'
+  if [ ! -e /usr/local/bin/gcc ]; then
+    sudo ln -s /usr/local/bin/gcc-8 /usr/local/bin/gcc
+  fi
+fi
+
+clone_and_compile () {
+  local git_url="$1"
+  local configure_params="$2"
+  local name=$(echo "$git_url" | sed -E 's:^.*/(.+)\.git:\1:')
+  if [ -d $HOME/develop/$name ]; then
+    return
+    echo "  $name already exists"
+  fi
+  cd $HOME/develop
+  git clone $git_url
+  cd $name
+  echo "  $name downloaded"
+  if [ -f configure ]; then
+    ./configure $configure_params
+  fi
+  make
+  sudo make install
+}
+
+clone_and_compile https://github.com/vim/vim.git '--enable-luainterp \
+  --enable-python3interp --enable-perlinterp --enable-rubyinterp \
+  --enable-tclinterp --enable-cscope --disable-sysmouse  --with-features=huge \
+  --enable-multibyte --disable-gui'
+
