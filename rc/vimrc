@@ -1,30 +1,30 @@
 let g:leader='g'
 let mapleader = g:leader
 
-" helper python functions {{{
+" helper python3 functions {{{
 " repeats the given a:command a:n times
 function! Repeat(command, n)
-python << EOF
+python3 << EOF
 import vim
 import subprocess
 cmd = vim.eval('a:command')
 n = int(vim.eval('a:n'))
-for _ in xrange(n):
+for _ in range(n):
   vim.command(cmd)
 EOF
 endfunction
 
 " creates mapping for <leader>N<prefix> for command*n
 function! RepeatN(prefix, command)
-python << EOF
+python3 << EOF
 import vim
 leader = vim.eval('g:leader')
 prefix = vim.eval('a:prefix')
 cmdpre = "nnoremap " + leader
 command = vim.eval('a:command')
-for i in xrange(1, 10):
+for i in range(1, 10):
   cmd = cmdpre + str(i) + prefix + " "
-  for _ in xrange(0, i):
+  for _ in range(0, i):
     cmd += command
   vim.command(cmd)
 EOF
@@ -38,6 +38,8 @@ set ruler smartcase ignorecase
 set viminfo+=:1000
 set foldmethod=marker
 set relativenumber number incsearch
+set shell=/bin/bash\ --login
+set shellcmdflag=-ic
 nnoremap <leader>sn :noh<CR>
 " dont use registers on x key
 noremap x "_x
@@ -64,9 +66,22 @@ hi Comment ctermfg=Cyan
 " plugin config {{{
 execute pathogen#infect()
 let g:HardMode_level = 'wannabe' 
+tnoremap jk <Esc>
+function! OnOptionSet()
+  if &paste ==# "1"
+    tunmap jk
+    tunmap <C-w>j
+  else
+    tnoremap jk <C-w>N
+    " to prevent hanging
+    tnoremap <C-w>j <C-w>j
+  endif
+endfunction
+call OnOptionSet()
 augroup vimrc
   autocmd!
   autocmd VimEnter,BufNewFile,BufReadPost * silent! call HardMode()
+  autocmd OptionSet * silent! call OnOptionSet()
 augroup END
 let NERDTreeIgnore=['\.d$[[file]]', '\.o$[[file]]', '\.out$[[file]]']
 nnoremap <C-n> :NERDTreeToggle<CR>
@@ -81,7 +96,7 @@ call RepeatN("q", ":quit<CR>")
 " }}}
 
 " pluginish operations {{{
-python << EOF
+python3 << EOF
 import vim
 import re
 class PathFinder:
@@ -199,26 +214,26 @@ class RunData:
 EOF
 
 function! Run(...)
-python << EOF
+python3 << EOF
 run_data = RunData()
 run_data.open_window()
 EOF
 endfunction
 
-function! RunQuit(...)
-python << EOF
+function! RunQuit()
+python3 << EOF
 run_data.on_quit()
 EOF
 endfunction
 
-function! RunSelect(...)
-python << EOF
+function! RunSelect()
+python3 << EOF
 run_data.on_select()
 EOF
 endfunction
 
-function! RunCursorMoved(...)
-python << EOF
+function! RunCursorMoved()
+python3 << EOF
 run_data.on_cursor_moved()
 EOF
 endfunction
