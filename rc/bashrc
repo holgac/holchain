@@ -49,7 +49,11 @@ holgac_ps_fn () {
   printf '\[%s\]' "$(tput bold)"
   printf '\[%s\]%s ' "$(tput setaf 6)" "$curdate"
   printf '\[%s\]%s ' "$(tput setaf 5)" "$cwd"
-  print_status_line "$exitcode"
+  if [ "$exitcode" -eq 0 ]; then
+    printf '\[%s\]:)' "$(tput setaf 2)"
+  else
+    printf '\[%s\]-%s:(' "$(tput setaf 1)" "$exitcode"
+  fi
   printf '\[%s\]' "$(tput sgr 0)"
 }
 
