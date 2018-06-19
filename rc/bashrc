@@ -9,7 +9,6 @@ RC_DIR=$(dirname "${BASH_SOURCE[0]}")
 REPO_DIR=$(dirname "$RC_DIR")
 # shellcheck source=/dev/null
 source "$RC_DIR/common"
-source "$RC_DIR/bashrcemoji"
 add_to_path () {
   local out
   if out=$(echo "$1:$PATH" | tr : \\n | grep -Ev '^$' | awk '!m[$0]++' | tr \\n :); then
