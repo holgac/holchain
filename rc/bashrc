@@ -137,7 +137,7 @@ ff () {
   elif [ -t 1 ] || [ "$2" = "stdout" ]; then
     local ret_code=1
     while read -r r; do
-      if cat -n "$r" | grep "$ARG2" | tr '\t' ' ' \
+      if cat -n "$r" | grep "$1" | tr '\t' ' ' \
         | sed -En 's:[ \t]*([0-9]+)[ \t]*:'"$r"'\:\1 ==>  :p' \
         | grep "$1"; then
         ret_code=0

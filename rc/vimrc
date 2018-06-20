@@ -89,7 +89,7 @@ augroup vimrc
 augroup END
 let NERDTreeIgnore=['\.d$[[file]]', '\.o$[[file]]', '\.out$[[file]]']
 nnoremap <C-n> :NERDTreeToggle<CR>
-nmap <silent> <Leader>r <Plug>(CommandT)
+nmap <silent> <Leader>w <Plug>(CommandT)
 " }}}
 
 " tab operations {{{
@@ -129,7 +129,7 @@ class PathFinder:
       return
     left = line[:cur[1]]
     right = line[cur[1]:]
-    regex = '^([\w/\.]*).*$'
+    regex = '^([\w/\.\-]*).*$'
     leftw = re.match(regex, left[::-1]).groups()[0]
     rightw = re.match(regex, right).groups()[0]
     return (cur[0] - 1, len(left) - len(leftw), len(left) + len(rightw))
@@ -154,37 +154,87 @@ class PathFinder:
     return (path, line, col)
 
 
+class RunUtils:
+  keymaps = None
+
+  @staticmethod
+  def feed_keys(keys):
+    vim.command(f'call feedkeys("{keys}")')
+
+  @staticmethod
+  def unset_keymaps():
+    if RunUtils.keymaps:
+      for (cmd, key, fn) in RunUtils.keymaps:
+        vim.command(f'{cmd} <buffer> {key} :python3 {fn}<CR>')
+      RunUtils.keymaps = None
+
+  @staticmethod
+  def set_keymaps(cmd_key_fn_tuples):
+    RunUtils.keymaps = cmd_key_fn_tuples
+    for (cmd, key, fn) in cmd_key_fn_tuples:
+      vim.command(f'{cmd} <buffer> {key} :python3 {fn}<CR>')
+
+  @staticmethod
+  def set_autocmds(event_fn_pairs):
+    vim.command('augroup rundata')
+    vim.command('autocmd! rundata')
+    for (event, fn) in event_fn_pairs:
+        vim.command(f'autocmd rundata {event} * silent! python3 {fn}')
+    vim.command('augroup END')
+
+
 class RunData:
   def __init__(self):
     self.match_id = None
-    self.target_winid = None
+    self.winid = None
     self.path_fetcher = PathFinder.path_under_cursor
     self.wordpos_under_cursor = PathFinder.wordpos_under_cursor
-
-  def open_window(self):
     self.target_winid = vim.eval('win_getid()')
+    self.target_bufnr = vim.eval('winbufnr(0)')
+    self.hidden_setting = None
+    self.is_preview_mode = False
+
+  def prompt(self):
+    vim.command('call inputsave()')
+    try:
+      cmd = vim.eval('input("$ ")')
+    except KeyboardInterrupt:
+      return
+    vim.command('call inputrestore()')
+    if len(cmd.strip(' ')) == 0:
+      return
+    self.open_window(cmd)
+
+  def on_run(self):
     args = ' '.join(str(i) for i in vim.eval('a:000'))
+    self.open_window(args)
+
+  def open_window(self, runcmd):
     height = '15'
     vim.command('botright ' + height + 'new')
     vim.command('setlocal buftype=nofile bufhidden=hide noswapfile')
-    vim.command('read !' + args)
+    vim.command('read !' + runcmd)
     vim.command('setlocal readonly nomodifiable')
     vim.command('call cursor(1,1)')
-    vim.command('noremap <buffer> q :call RunQuit()<CR>')
-    vim.command('noremap <buffer> : :call RunQuit()<CR>:')
-    # TODO: preview
-    # vim.command('noremap <buffer> p :call PreviewClick()<CR>')
-    vim.command('noremap <buffer> <CR> :call RunSelect()<CR>')
-    vim.command('augroup rundata')
-    vim.command('autocmd rundata BufLeave * silent! call RunQuit()')
-    vim.command('autocmd rundata CursorMoved * silent! call RunCursorMoved()')
-    vim.command('augroup END')
+    RunUtils.set_autocmds([
+      ('BufLeave', 'run_data.on_quit()'),
+      ('CursorMoved', 'run_data.on_cursor_moved()'),
+    ])
+    RunUtils.set_keymaps([
+      ('nnoremap', 'q', 'run_data.on_quit()'),
+      ('nnoremap', ':', 'run_data.on_quit() and RunUtils.feed_keys(":")'),
+      ('nnoremap', '<CR>', 'run_data.on_select()'),
+      # ('nnoremap', 'p', 'run_data.on_preview()'),
+    ])
     vim.command('highlight RunHover ctermfg=red cterm=underline,bold,italic')
+    self.winid = vim.eval('win_getid()')
     self.on_cursor_moved()
 
   def on_quit(self):
     vim.command('quit')
+    vim.command('call win_gotoid(' + self.target_winid + ')')
     self.cleanup()
+    return True
 
   def on_cursor_moved(self):
     if self.match_id is not None:
@@ -198,19 +248,45 @@ class RunData:
       "matchaddpos('RunHover', [[{},{},{}]])".format(linenum + 1, start + 1, end - start),
     )
 
-  def on_select(self):
+  def on_preview(self):
+    data = self.path_fetcher()
+    if data is None:
+      return
+    if self.hidden_setting is None:
+      self.hidden_setting = bool(int(vim.eval('&hidden')))
+      vim.command('set hidden')
+    (path, cx, cy) = data
+    self.open_file(path, cx, cy)
+    RunUtils.set_autocmds([
+      ('BufLeave', 'run_data.on_quit()'),
+    ])
+
+  def open_file(self, path, cx = None, cy = None):
+    vim.command('call win_gotoid(' + self.target_winid + ')')
+    vim.command('edit ' + path)
+    if cx is not None and cy is not None:
+      vim.command('call cursor(' + str(cx) + ', ' + str(cy) + ')')
+
+  def focus_to_win(self):
+    vim.command(f'call win_gotoid({self.winid})')
+    return True
+
+  def on_select(self, set_cursor = True):
     data = self.path_fetcher()
     if data is None:
       return
     (path, cx, cy) = data
-    # close current buffer
+    # close current window
     vim.command('quit')
-    vim.command('call win_gotoid(' + self.target_winid + ')')
-    vim.command('edit ' + path)
-    vim.command('call cursor(' + str(cx) + ', ' + str(cy) + ')')
+    if set_cursor:
+      self.open_file(path, cx, cy)
+    else
+      self.open_file(path)
     self.cleanup()
 
   def cleanup(self):
+    if self.hidden_setting is False:
+      vim.command('set hidden')
     vim.command('augroup rundata')
     vim.command('autocmd! rundata')
     vim.command('augroup END')
@@ -221,27 +297,18 @@ EOF
 function! Run(...)
 python3 << EOF
 run_data = RunData()
-run_data.open_window()
+run_data.on_run()
 EOF
 endfunction
 
-function! RunQuit()
+function! RunPrompt()
 python3 << EOF
-run_data.on_quit()
+run_data = RunData()
+run_data.prompt()
 EOF
 endfunction
 
-function! RunSelect()
-python3 << EOF
-run_data.on_select()
-EOF
-endfunction
-
-function! RunCursorMoved()
-python3 << EOF
-run_data.on_cursor_moved()
-EOF
-endfunction
+nnoremap <silent> <Leader>r :call RunPrompt()<CR>
 
 command! -nargs=+ Run call Run("<args>")
 
