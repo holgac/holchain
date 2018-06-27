@@ -44,6 +44,7 @@ set foldmethod=marker
 set relativenumber number incsearch
 set shell=/bin/bash\ --login
 set shellcmdflag=-ic
+set hidden
 nnoremap <leader>sn :noh<CR>
 " dont use registers on x key
 noremap x "_x
@@ -191,7 +192,6 @@ class RunData:
     self.wordpos_under_cursor = PathFinder.wordpos_under_cursor
     self.target_winid = vim.eval('win_getid()')
     self.target_bufnr = vim.eval('winbufnr(0)')
-    self.hidden_setting = None
     self.is_preview_mode = False
 
   def prompt(self):
@@ -231,7 +231,7 @@ class RunData:
     self.on_cursor_moved()
 
   def on_quit(self):
-    vim.command('quit')
+    vim.command(f'bdelete')
     vim.command('call win_gotoid(' + self.target_winid + ')')
     self.cleanup()
     return True
@@ -252,9 +252,6 @@ class RunData:
     data = self.path_fetcher()
     if data is None:
       return
-    if self.hidden_setting is None:
-      self.hidden_setting = bool(int(vim.eval('&hidden')))
-      vim.command('set hidden')
     (path, cx, cy) = data
     self.open_file(path, cx, cy)
     RunUtils.set_autocmds([
@@ -277,7 +274,7 @@ class RunData:
       return
     (path, cx, cy) = data
     # close current window
-    vim.command('quit')
+    vim.command(f'bdelete')
     if set_cursor:
       self.open_file(path, cx, cy)
     else:
@@ -285,8 +282,6 @@ class RunData:
     self.cleanup()
 
   def cleanup(self):
-    if self.hidden_setting is False:
-      vim.command('set hidden')
     vim.command('augroup rundata')
     vim.command('autocmd! rundata')
     vim.command('augroup END')
