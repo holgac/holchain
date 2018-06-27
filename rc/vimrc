@@ -39,7 +39,7 @@ endfunction
 syntax on
 set tabstop=2 expandtab autoindent shiftwidth=2 hlsearch backspace=2
 set ruler smartcase ignorecase
-set viminfo+=:1000
+set viminfo+='1000,f1,:1000
 set foldmethod=marker
 set relativenumber number incsearch
 set shell=/bin/bash\ --login
@@ -280,7 +280,7 @@ class RunData:
     vim.command('quit')
     if set_cursor:
       self.open_file(path, cx, cy)
-    else
+    else:
       self.open_file(path)
     self.cleanup()
 
