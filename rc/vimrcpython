@@ -1,0 +1,43 @@
+python3 << EOF
+import vim
+
+class vim_py:
+  keymaps = None
+
+  @staticmethod
+  def feed_keys(keys):
+    vim.command(f'call feedkeys("{keys}")')
+
+  @staticmethod
+  def unset_keymaps():
+    if vim_py.keymaps:
+      for (cmd, key, fn) in vim_py.keymaps:
+        vim.command(f'{cmd} <buffer> {key} :python3 {fn}<CR>')
+      vim_py.keymaps = None
+
+  @staticmethod
+  def set_keymaps(cmd_key_fn_tuples):
+    vim_py.keymaps = cmd_key_fn_tuples
+    for (cmd, key, fn) in cmd_key_fn_tuples:
+      vim.command(f'{cmd} <buffer> {key} :python3 {fn}<CR>')
+
+  def add_keymap(key, fn, add_leader=True, buffer_only=False):
+    vim.command(
+      f'nnoremap {"<buffer>" if buffer_only else ""} '\
+      f'{"<leader>" if add_leader else ""}{key} :python3 {fn}<CR>',
+    )
+
+  def add_keymap_n(key, fn, prefn=None, add_leader=True, buffer_only=False):
+    for 
+    
+
+  @staticmethod
+  def set_autocmds(event_fn_pairs):
+    vim.command('augroup rundata')
+    vim.command('autocmd! rundata')
+    for (event, fn) in event_fn_pairs:
+        vim.command(f'autocmd rundata {event} * silent! python3 {fn}')
+    vim.command('augroup END')
+
+
+EOF
