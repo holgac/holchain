@@ -74,12 +74,7 @@ vim_py.add_keymap('p', 'BufferSwitcher.pop()')
 vim_py.add_keymap('P', 'BufferSwitcher.purge()')
 vim_py.add_keymap('M', 'BufferSwitcher.register()')
 vim_py.add_keymap('\'', 'BufferSwitcher.gotoregister()')
-<<<<<<< HEAD
 endpython
-=======
->>>>>>> d50ea3bbbab439c59d7bd4a9702bc77e1b9f3914
-" nnoremap <leader>bn
->>>>>>> 8a2ca45a89be8a7794c9460833d2ba95430cd392
 " }}}
 
 " pluginish operations {{{
