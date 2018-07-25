@@ -88,7 +88,6 @@ class BufferSwitcher:
     if goto:
       elem = BufferSwitcher.curlist[BufferSwitcher.curidx]
       vim.command(f'buffer {elem["bufno"]}')
-      vim.command(f'call cursor({elem["line"]},{elem["col"]})')
 
   @staticmethod
   def pop():
