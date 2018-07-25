@@ -72,6 +72,8 @@ vim_py.add_keymap('n', 'BufferSwitcher.inc()')
 vim_py.add_keymap('N', 'BufferSwitcher.inc(-1)')
 vim_py.add_keymap('p', 'BufferSwitcher.pop()')
 vim_py.add_keymap('P', 'BufferSwitcher.purge()')
+vim_py.add_keymap('M', 'BufferSwitcher.register()')
+vim_py.add_keymap('\'', 'BufferSwitcher.gotoregister()')
 endpython
 " nnoremap <leader>bn
 " }}}
