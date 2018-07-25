@@ -1,0 +1,85 @@
+python3 << endpython
+import vim
+
+class vim_py:
+  keymaps = None
+
+  @staticmethod
+  def feed_keys(keys):
+    vim.command(f'call feedkeys("{keys}")')
+
+  @staticmethod
+  def unset_keymaps():
+    if vim_py.keymaps:
+      for (cmd, key, fn) in vim_py.keymaps:
+        vim.command(f'{cmd} <buffer> {key} :python3 {fn}<CR>')
+      vim_py.keymaps = None
+
+  @staticmethod
+  def set_keymaps(cmd_key_fn_tuples):
+    vim_py.keymaps = cmd_key_fn_tuples
+    for (cmd, key, fn) in cmd_key_fn_tuples:
+      vim.command(f'{cmd} <buffer> {key} :python3 {fn}<CR>')
+
+  def add_keymap(key, fn, add_leader=True, buffer_only=False):
+    vim.command(
+      f'nnoremap {"<buffer>" if buffer_only else ""} '\
+      f'{"<leader>" if add_leader else ""}{key} :python3 {fn}<CR>',
+    )
+
+  def add_keymap_n(key, fn, prefn=None, add_leader=True, buffer_only=False):
+    for i in range(1, 10):
+      cmds = []
+      if prefn:
+        cmds.append(prefn)
+      for j in range(0, i):
+        cmds.append(fn)
+      toeval = '(' + ','.join(cmds) + ')'
+      vim_py.add_keymap(f'{i}{key}', toeval, add_leader, buffer_only)
+
+  @staticmethod
+  def set_autocmds(event_fn_pairs):
+    vim.command('augroup rundata')
+    vim.command('autocmd! rundata')
+    for (event, fn) in event_fn_pairs:
+        vim.command(f'autocmd rundata {event} * silent! python3 {fn}')
+    vim.command('augroup END')
+
+class BufferSwitcher:
+  #kbmap = '1234567890-=!@#$%^&*()_+qwertyuiop[]asdfghjkl;\'zxcvbnm,.QWERTYUIOP{}ASDFGHJKL:"ZXCVBNM<>/'
+  # TODO: trim and save to viminfo?
+  curlist = []
+  curidx = -1
+
+  @staticmethod
+  def push():
+    BufferSwitcher.curidx = len(BufferSwitcher.curlist)
+    BufferSwitcher.curlist.append({
+      'bufno': vim.current.buffer.number,
+      'line': vim.current.window.cursor[0],
+      'col': vim.current.window.cursor[1],
+    })
+
+  @staticmethod
+  def inc(inc=1, goto=True):
+    if len(BufferSwitcher.curlist) < 1:
+      return
+    BufferSwitcher.curidx = (inc + len(BufferSwitcher.curlist) + BufferSwitcher.curidx) % len(BufferSwitcher.curlist)
+    if goto:
+      elem = BufferSwitcher.curlist[BufferSwitcher.curidx]
+      vim.command(f'buffer {elem["bufno"]}')
+      vim.command(f'call cursor({elem["line"]},{elem["col"]})')
+
+  @staticmethod
+  def pop():
+    BufferSwitcher.curlist = filter(
+      BufferSwitcher.curlist,
+      lambda x: x['bufno'] != vim.current.buffer.number,
+    )
+    BufferSwitcher.inc(0, False)
+
+  @staticmethod
+  def purge():
+    BufferSwitcher.curlist = []
+
+endpython

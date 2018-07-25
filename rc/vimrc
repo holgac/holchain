@@ -1,40 +1,6 @@
 let g:leader='g'
 let mapleader = g:leader
 
-" helper python3 functions {{{
-" repeats the given a:command a:n times
-function! Repeat(command, n)
-python3 << EOF
-import vim
-import subprocess
-cmd = vim.eval('a:command')
-n = int(vim.eval('a:n'))
-for _ in range(n):
-  vim.command(cmd)
-EOF
-endfunction
-
-" creates mapping for <leader>N<prefix> for command*n
-function! RepeatN(prefix, command, ...)
-python3 << EOF
-import vim
-leader = vim.eval('g:leader')
-prefix = vim.eval('a:prefix')
-cmdpre = "nnoremap " + leader
-command = vim.eval('a:command')
-beforecmd = vim.eval('get(a:, 1, "")')
-if beforecmd:
-  cmd = cmdpre + prefix + prefix + " " + beforecmd
-  vim.command(cmd)
-for i in range(1, 10):
-  cmd = cmdpre + str(i) + prefix + " " + beforecmd
-  for _ in range(0, i):
-    cmd += command
-  vim.command(cmd)
-EOF
-endfunction
-" }}}
-
 " general config {{{
 syntax on
 set tabstop=2 expandtab autoindent shiftwidth=2 hlsearch backspace=2
@@ -93,16 +59,25 @@ nnoremap <C-n> :NERDTreeToggle<CR>
 nmap <silent> <Leader>w <Plug>(CommandT)
 " }}}
 
-" tab operations {{{
-nnoremap <leader>e :tabedit<CR>
-call RepeatN("t", ":tabnext<CR>")
-call RepeatN("T", ":tabprevious<CR>")
-call RepeatN("q", ":quit<CR>")
-call RepeatN("y", ":tabnext<CR>", ":tabrewind<CR>")
+" tab/buffer operations {{{
+python3 << endpython
+# nnoremap <leader>e :tabedit<CR>
+vim_py.add_keymap('e', "vim.command('tabedit')")
+vim_py.add_keymap_n('t', "vim.command('tabnext')")
+vim_py.add_keymap_n('T', "vim.command('tabprevious')")
+vim_py.add_keymap_n('q', "vim.command('quit')")
+vim_py.add_keymap_n('y', "vim.command('tabnext')", "vim.command('tabrewind')")
+vim_py.add_keymap('m', 'BufferSwitcher.push()')
+vim_py.add_keymap('n', 'BufferSwitcher.inc()')
+vim_py.add_keymap('N', 'BufferSwitcher.inc(-1)')
+vim_py.add_keymap('p', 'BufferSwitcher.pop()')
+vim_py.add_keymap('P', 'BufferSwitcher.purge()')
+endpython
+" nnoremap <leader>bn
 " }}}
 
 " pluginish operations {{{
-python3 << EOF
+python3 << endpython
 import vim
 import re
 class PathFinder:
@@ -154,36 +129,6 @@ class PathFinder:
         col = int(res.groups()[2])
     return (path, line, col)
 
-
-class RunUtils:
-  keymaps = None
-
-  @staticmethod
-  def feed_keys(keys):
-    vim.command(f'call feedkeys("{keys}")')
-
-  @staticmethod
-  def unset_keymaps():
-    if RunUtils.keymaps:
-      for (cmd, key, fn) in RunUtils.keymaps:
-        vim.command(f'{cmd} <buffer> {key} :python3 {fn}<CR>')
-      RunUtils.keymaps = None
-
-  @staticmethod
-  def set_keymaps(cmd_key_fn_tuples):
-    RunUtils.keymaps = cmd_key_fn_tuples
-    for (cmd, key, fn) in cmd_key_fn_tuples:
-      vim.command(f'{cmd} <buffer> {key} :python3 {fn}<CR>')
-
-  @staticmethod
-  def set_autocmds(event_fn_pairs):
-    vim.command('augroup rundata')
-    vim.command('autocmd! rundata')
-    for (event, fn) in event_fn_pairs:
-        vim.command(f'autocmd rundata {event} * silent! python3 {fn}')
-    vim.command('augroup END')
-
-
 class RunData:
   def __init__(self):
     self.match_id = None
@@ -216,13 +161,13 @@ class RunData:
     vim.command('read !' + runcmd)
     vim.command('setlocal readonly nomodifiable')
     vim.command('call cursor(1,1)')
-    RunUtils.set_autocmds([
+    vim_py.set_autocmds([
       ('BufLeave', 'run_data.on_quit()'),
       ('CursorMoved', 'run_data.on_cursor_moved()'),
     ])
-    RunUtils.set_keymaps([
+    vim_py.set_keymaps([
       ('nnoremap', 'q', 'run_data.on_quit()'),
-      ('nnoremap', ':', 'run_data.on_quit() and RunUtils.feed_keys(":")'),
+      ('nnoremap', ':', 'run_data.on_quit() and vim_py.feed_keys(":")'),
       ('nnoremap', '<CR>', 'run_data.on_select()'),
       # ('nnoremap', 'p', 'run_data.on_preview()'),
     ])
@@ -254,7 +199,7 @@ class RunData:
       return
     (path, cx, cy) = data
     self.open_file(path, cx, cy)
-    RunUtils.set_autocmds([
+    vim_py.set_autocmds([
       ('BufLeave', 'run_data.on_quit()'),
     ])
 
@@ -287,25 +232,24 @@ class RunData:
     vim.command('augroup END')
     vim.command('highlight clear RunHover')
 
-EOF
+endpython
 
 function! Run(...)
-python3 << EOF
+python3 << endpython
 run_data = RunData()
 run_data.on_run()
-EOF
+endpython
 endfunction
 
 function! RunPrompt()
-python3 << EOF
+python3 << endpython
 run_data = RunData()
 run_data.prompt()
-EOF
+endpython
 endfunction
 
 nnoremap <silent> <Leader>r :call RunPrompt()<CR>
 
 command! -nargs=+ Run call Run("<args>")
-
 
 " }}}
