@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 python3 << EOF
+=======
+python3 << endpython
+>>>>>>> d50ea3bbbab439c59d7bd4a9702bc77e1b9f3914
 import vim
 
 class vim_py:
@@ -28,8 +32,14 @@ class vim_py:
     )
 
   def add_keymap_n(key, fn, prefn=None, add_leader=True, buffer_only=False):
-    for 
-    
+    for i in range(1, 10):
+      cmds = []
+      if prefn:
+        cmds.append(prefn)
+      for j in range(0, i):
+        cmds.append(fn)
+      toeval = '(' + ','.join(cmds) + ')'
+      vim_py.add_keymap(f'{i}{key}', toeval, add_leader, buffer_only)
 
   @staticmethod
   def set_autocmds(event_fn_pairs):
@@ -39,5 +49,55 @@ class vim_py:
         vim.command(f'autocmd rundata {event} * silent! python3 {fn}')
     vim.command('augroup END')
 
+class BufferSwitcher:
+  #kbmap = '1234567890-=!@#$%^&*()_+qwertyuiop[]asdfghjkl;\'zxcvbnm,.QWERTYUIOP{}ASDFGHJKL:"ZXCVBNM<>/'
+  # TODO: trim and save to viminfo?
+  curlist = []
+  curidx = -1
+  reglist = {}
 
-EOF
+  @staticmethod
+  def push():
+    BufferSwitcher.curidx = len(BufferSwitcher.curlist)
+    BufferSwitcher.curlist.append({
+      'bufno': vim.current.buffer.number,
+      'line': vim.current.window.cursor[0],
+      'col': vim.current.window.cursor[1],
+    })
+
+  # like mark+uppercasereg, but does not change cursor
+  @staticmethod
+  def register():
+    reg = vim.eval('getchar()')
+    BufferSwitcher.reglist[reg] = vim.current.buffer.number
+
+  @staticmethod
+  def gotoregister():
+    reg = vim.eval('getchar()')
+    if reg in BufferSwitcher.reglist:
+      elem = BufferSwitcher.reglist[reg]
+      vim.command(f'buffer {elem}')
+
+  @staticmethod
+  def inc(inc=1, goto=True):
+    if len(BufferSwitcher.curlist) < 1:
+      return
+    BufferSwitcher.curidx = (inc + len(BufferSwitcher.curlist) + BufferSwitcher.curidx) % len(BufferSwitcher.curlist)
+    if goto:
+      elem = BufferSwitcher.curlist[BufferSwitcher.curidx]
+      vim.command(f'buffer {elem["bufno"]}')
+      vim.command(f'call cursor({elem["line"]},{elem["col"]})')
+
+  @staticmethod
+  def pop():
+    BufferSwitcher.curlist = filter(
+      BufferSwitcher.curlist,
+      lambda x: x['bufno'] != vim.current.buffer.number,
+    )
+    BufferSwitcher.inc(0, False)
+
+  @staticmethod
+  def purge():
+    BufferSwitcher.curlist = []
+
+endpython

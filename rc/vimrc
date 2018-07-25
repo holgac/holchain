@@ -1,40 +1,6 @@
 let g:leader='g'
 let mapleader = g:leader
 
-" helper python3 functions {{{
-" repeats the given a:command a:n times
-function! Repeat(command, n)
-python3 << endpython
-import vim
-import subprocess
-cmd = vim.eval('a:command')
-n = int(vim.eval('a:n'))
-for _ in range(n):
-  vim.command(cmd)
-endpython
-endfunction
-
-" creates mapping for <leader>N<prefix> for command*n
-function! RepeatN(prefix, command, ...)
-python3 << endpython
-import vim
-leader = vim.eval('g:leader')
-prefix = vim.eval('a:prefix')
-cmdpre = "nnoremap " + leader
-command = vim.eval('a:command')
-beforecmd = vim.eval('get(a:, 1, "")')
-if beforecmd:
-  cmd = cmdpre + prefix + prefix + " " + beforecmd
-  vim.command(cmd)
-for i in range(1, 10):
-  cmd = cmdpre + str(i) + prefix + " " + beforecmd
-  for _ in range(0, i):
-    cmd += command
-  vim.command(cmd)
-endpython
-endfunction
-" }}}
-
 " general config {{{
 syntax on
 set tabstop=2 expandtab autoindent shiftwidth=2 hlsearch backspace=2
@@ -97,11 +63,18 @@ nmap <silent> <Leader>w <Plug>(CommandT)
 python3 << endpython
 # nnoremap <leader>e :tabedit<CR>
 vim_py.add_keymap('e', "vim.command('tabedit')")
-endpython
-call RepeatN("t", ":tabnext<CR>")
-call RepeatN("T", ":tabprevious<CR>")
-call RepeatN("q", ":quit<CR>")
-call RepeatN("y", ":tabnext<CR>", ":tabrewind<CR>")
+vim_py.add_keymap_n('t', "vim.command('tabnext')")
+vim_py.add_keymap_n('T', "vim.command('tabprevious')")
+vim_py.add_keymap_n('q', "vim.command('quit')")
+vim_py.add_keymap_n('y', "vim.command('tabnext')", "vim.command('tabrewind')")
+vim_py.add_keymap('m', 'BufferSwitcher.push()')
+vim_py.add_keymap('n', 'BufferSwitcher.inc()')
+vim_py.add_keymap('N', 'BufferSwitcher.inc(-1)')
+vim_py.add_keymap('p', 'BufferSwitcher.pop()')
+vim_py.add_keymap('P', 'BufferSwitcher.purge()')
+vim_py.add_keymap('M', 'BufferSwitcher.register()')
+vim_py.add_keymap('\'', 'BufferSwitcher.gotoregister()')
+>>>>>>> d50ea3bbbab439c59d7bd4a9702bc77e1b9f3914
 " nnoremap <leader>bn
 " }}}
 
