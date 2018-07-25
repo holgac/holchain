@@ -75,6 +75,12 @@ class BufferSwitcher:
       vim.command(f'buffer {elem}')
 
   @staticmethod
+  def printregisters():
+    for (reg,bufno) in BufferSwitcher.reglist.items():
+      ch = chr(int(reg))
+      print(f'{ch}: {vim.buffers[bufno].name}')
+
+  @staticmethod
   def inc(inc=1, goto=True):
     if len(BufferSwitcher.curlist) < 1:
       return

@@ -74,6 +74,7 @@ vim_py.add_keymap('p', 'BufferSwitcher.pop()')
 vim_py.add_keymap('P', 'BufferSwitcher.purge()')
 vim_py.add_keymap('M', 'BufferSwitcher.register()')
 vim_py.add_keymap('\'', 'BufferSwitcher.gotoregister()')
+vim_py.add_keymap('?r', 'BufferSwitcher.printregisters()')
 endpython
 " }}}
 
