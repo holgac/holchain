@@ -91,10 +91,10 @@ class BufferSwitcher:
 
   @staticmethod
   def pop():
-    BufferSwitcher.curlist = filter(
-      BufferSwitcher.curlist,
+    BufferSwitcher.curlist = list(filter(
       lambda x: x['bufno'] != vim.current.buffer.number,
-    )
+      BufferSwitcher.curlist,
+    ))
     BufferSwitcher.inc(0, False)
 
   @staticmethod
