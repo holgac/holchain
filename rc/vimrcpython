@@ -54,6 +54,7 @@ class BufferSwitcher:
 
   @staticmethod
   def push():
+    BufferSwitcher.pop()
     BufferSwitcher.curidx = len(BufferSwitcher.curlist)
     BufferSwitcher.curlist.append({
       'bufno': vim.current.buffer.number,
