@@ -149,13 +149,13 @@ class RunData:
     vim.command('call inputrestore()')
     if len(cmd.strip(' ')) == 0:
       return
-    self.open_window(cmd)
+    self.run(cmd)
 
   def on_run(self):
     args = ' '.join(str(i) for i in vim.eval('a:000'))
-    self.open_window(args)
+    self.run(args)
 
-  def open_window(self, runcmd):
+  def run(self, runcmd):
     height = '15'
     vim.command('botright ' + height + 'new')
     vim.command('setlocal buftype=nofile bufhidden=hide noswapfile')
@@ -247,6 +247,7 @@ endfunction
 
 function! RunPrompt()
 python3 << endpython
+# TODO: move to a namespaceish thing
 run_data = RunData()
 run_data.prompt()
 endpython
@@ -255,5 +256,13 @@ endfunction
 nnoremap <silent> <Leader>r :call RunPrompt()<CR>
 
 command! -nargs=+ Run call Run("<args>")
+" TODO: use vim_py.add_keymap
+" TODO: help screen with categories like 'hg commands' or 'buffer commands'?
+"       ^ can easily be integrated to vim_py
+nnoremap <leader>srl :call Run("hg resolve --list")<CR>
+nnoremap <leader>str :call Run("hg st --rev .^")<CR>
+nnoremap <leader>stw :call Run("hg st")<CR>
+" TODO: mark all and mark this file options
+nnoremap <leader>srm :call system("hg resolve --mark")<CR>
 
 " }}}

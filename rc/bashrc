@@ -100,7 +100,7 @@ alias i3cheat='grep -Ev -e "^ *#" -e "^ *$" < "$I3CONFIG" | sed -re "s/^  +/  /g
 
 # displays only basic info
 npminfo () {
-  npm info "$1" | tr "'" '"' | sed -r 's/(\w+): /"\1":/g'\
+  npm info "$1" | tr "'" '"' | sed -r 's/(\w+): /"\1":/g' \
     | jq '{name,description,license,version}'
 }
 
@@ -167,4 +167,32 @@ tee2tmp () {
   if [ -n "$1" ]; then
     eval "$1 $tmp"
   fi
+}
+
+# Use like 'xeger H{ey|o} how{\'s|is} it goin{g|}
+function xeger () {
+  echo "$@" | awk '
+    function xeger (st) {
+      while ((l = length(st)) > 0) {
+        nexttok = index(st, "{") - 1;
+        if(nexttok < 0) nexttok = l;
+        printf("%s", substr(st, 1, nexttok));
+        st = substr(st, nexttok+1);
+        l = xegeregex(st);
+        st = substr(st, l+1);
+      }
+    }
+    function xegeregex (st) {
+      nexttok = index(st, "}")-1;
+      if(nexttok < 0) nexttok = length(st);
+      split(substr(st, 2, nexttok-1), opt, "|");
+      p = (int(rand()*length(opt)))
+      printf("%s", opt[1+p]);
+      return nexttok + 1;
+    }
+    {
+      srand('"$(date '+%N')"');
+      xeger($0);
+    }
+  '
 }
