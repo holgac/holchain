@@ -96,6 +96,10 @@ alias cdd='cd "${DATAFOLDER-$(realpath ~)/develop}"'
 alias holbinlog='mysqlbinlog -vv --base64-output=decode-rows'
 # cheat sheet for i3
 alias i3cheat='grep -Ev -e "^ *#" -e "^ *$" < "$I3CONFIG" | sed -re "s/^  +/  /g" -e "s/^( *)bindsym /\1/g" -e "s/ exec (--no-startup-id)/ =>/g"'
+CDSTACK=()
+alias cdpush='CDSTACK=( "${CDSTACK[@]}" "$(pwd)" )'
+alias cdpop='cd "${CDSTACK[${#CDSTACK[@]}-1]}"; unset CDSTACK[${#CDSTACK[@]}-1]'
+alias cdpeek='echo "${CDSTACK[${#CDSTACK[@]}-1]}"'
 # }}}
 
 # displays only basic info
