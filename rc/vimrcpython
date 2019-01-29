@@ -90,6 +90,14 @@ class vim_py:
         col = int(res.groups()[2])
     return (path, line, col)
 
+  @staticmethod
+  def open_in_new_tab():
+    buf = vim.current.buffer.number
+    cursor = vim.current.window.cursor
+    vim.command(f'tabnew {vim.current.buffer.name}')
+    vim.command(f'call cursor({cursor[0]}, {cursor[1]})')
+
+
 class BufferSwitcher:
   #kbmap = '1234567890-=!@#$%^&*()_+qwertyuiop[]asdfghjkl;\'zxcvbnm,.QWERTYUIOP{}ASDFGHJKL:"ZXCVBNM<>/'
   # TODO: trim and save to viminfo?
