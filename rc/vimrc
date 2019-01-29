@@ -22,7 +22,7 @@ nnoremap <leader>sfp :let @" = expand("%:p")<CR>
 " get dir (path minus filename)
 nnoremap <leader>sfd :let @" = expand("%:h")<CR>
 " Open the same file in a new tab
-nmap <leader>sot :let @h = expand("%:p")<CR>ge:e <C-r>h<CR>
+nmap <leader>sot :let $h = expand("%:p")<CR>:tabnew $h<CR>
 " reload vimrc
 nnoremap <leader>sso :so ~/.vimrc<CR>
 " jk to escape
