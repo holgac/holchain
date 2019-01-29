@@ -45,6 +45,51 @@ class vim_py:
         vim.command(f'autocmd rundata {event} * silent! python3 {fn}')
     vim.command('augroup END')
 
+  @staticmethod
+  def open_file(path, cx = None, cy = None):
+    vim.command('edit ' + path)
+    if cx is not None and cy is not None:
+      vim.command('call cursor(' + str(cx) + ', ' + str(cy) + ')')
+
+  @staticmethod
+  def wordpos_under_cursor():
+    buf = vim.current.buffer
+    cur = vim.current.window.cursor
+    line = vim.current.buffer[cur[0] - 1]
+    # check if whitespace
+    if len(line) is 0:
+      return
+    cchar = line[cur[1]]
+    if cchar == ' ' or cchar == '\t':
+      vim.current.buffer.append('wtf', cur[0])
+      # TODO: throw
+      return
+    left = line[:cur[1]]
+    right = line[cur[1]:]
+    regex = '^([\w/\.\-]*).*$'
+    leftw = re.match(regex, left[::-1]).groups()[0]
+    rightw = re.match(regex, right).groups()[0]
+    return (cur[0] - 1, len(left) - len(leftw), len(left) + len(rightw))
+
+  @staticmethod
+  def path_under_cursor():
+    buf = vim.current.buffer
+    data = vim_py.wordpos_under_cursor()
+    if data is None:
+      return
+    (linenum, start, end) = data
+    line = buf[linenum]
+    path = line[start:end]
+    regex = '^:(\d+)(:(\d+))?'
+    right = line[end:]
+    (line, col) = (0, 0)
+    res = re.match(regex, right)
+    if res:
+      line = int(res.groups()[0])
+      if len(res.groups()) == 3 and res.groups()[2] is not None:
+        col = int(res.groups()[2])
+    return (path, line, col)
+
 class BufferSwitcher:
   #kbmap = '1234567890-=!@#$%^&*()_+qwertyuiop[]asdfghjkl;\'zxcvbnm,.QWERTYUIOP{}ASDFGHJKL:"ZXCVBNM<>/'
   # TODO: trim and save to viminfo?
@@ -101,5 +146,38 @@ class BufferSwitcher:
   @staticmethod
   def purge():
     BufferSwitcher.curlist = []
+
+class CodeReview:
+  bufno = None
+  @staticmethod
+  def start():
+    CodeReview.bufno = vim.current.buffer.number
+    vim_py.open_file(*vim_py.path_under_cursor())
+    vim.command(f'nnoremap <C-g><C-p> :python3 CodeReview.keep()<CR>')
+    vim.command(f'nnoremap <C-g><C-o> :python3 CodeReview.discard()<CR>')
+    vim.command(f'nnoremap <C-g><C-i> :python3 CodeReview.again()<CR>')
+
+
+  @staticmethod
+  def again():
+    vim.command(f'buffer {CodeReview.bufno}')
+    vim_py.open_file(*vim_py.path_under_cursor())
+
+
+  @staticmethod
+  def keep():
+    vim.command(f'buffer {CodeReview.bufno}')
+    ln = vim.current.window.cursor[0] + 1
+    vim.command(f'call cursor({ln}, 1)')
+    vim_py.open_file(*vim_py.path_under_cursor())
+
+  @staticmethod
+  def discard():
+    vim.command(f'buffer {CodeReview.bufno}')
+    ln = vim.current.window.cursor[0]
+    del vim.current.buffer[ln-1]
+    if len(vim.current.buffer):
+      vim.command(f'call cursor({ln}, 1)')
+      vim_py.open_file(*vim_py.path_under_cursor())
 
 endpython
