@@ -96,6 +96,7 @@ class BufferSwitcher:
   curlist = []
   curidx = -1
   reglist = {}
+  prevbufno = None
 
   @staticmethod
   def push():
@@ -107,6 +108,12 @@ class BufferSwitcher:
       'col': vim.current.window.cursor[1],
     })
 
+  @staticmethod
+  def gotoprev():
+    prevbufno = BufferSwitcher.prevbufno
+    BufferSwitcher.prevbufno = vim.current.buffer.number
+    vim.command(f'buffer {prevbufno}')
+
   # like mark+uppercasereg, but does not change cursor
   @staticmethod
   def register():
@@ -115,6 +122,7 @@ class BufferSwitcher:
 
   @staticmethod
   def gotoregister():
+    BufferSwitcher.prevbufno = vim.current.buffer.number
     reg = vim.eval('getchar()')
     if reg in BufferSwitcher.reglist:
       elem = BufferSwitcher.reglist[reg]
@@ -130,6 +138,7 @@ class BufferSwitcher:
   def inc(inc=1, goto=True):
     if len(BufferSwitcher.curlist) < 1:
       return
+    BufferSwitcher.prevbufno = vim.current.buffer.number
     BufferSwitcher.curidx = (inc + len(BufferSwitcher.curlist) + BufferSwitcher.curidx) % len(BufferSwitcher.curlist)
     if goto:
       elem = BufferSwitcher.curlist[BufferSwitcher.curidx]
