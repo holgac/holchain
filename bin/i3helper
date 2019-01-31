@@ -20,6 +20,7 @@ copy() {
     xsel -op | xsel -ib
   else
     upmeta
+    # Ctrl+c is actually a better solution for non-terminals
     xdotool key 'Ctrl+c'
     xsel -ob | xsel -ip
   fi
