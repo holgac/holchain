@@ -5,65 +5,47 @@ function usage() {
   echo "$0 [OPTIONS]"
   echo "  Deploys rc files and sets up stuff"
   echo "Parameters:"
+  echo "  -s: Server mode (do not install window manager etc.)"
+  echo "  -d: Directory to clone repos into (defaults to ~/develop)"
+  echo "  -r: Dry run - Just print operations"
+  echo "  -h: Display this help and exit"
 }
 
-while getopts "f" OPT; do
+server_mode=
+clone_dir="$HOME/develop"
+dry_run=
+while getopts "sd:rh" OPT; do
   case "$OPT" in
-    f) echo placeholder;;
+    s) server_mode=1;;
+    d) clone_dir="$OPTARG";;
+    r) dry_run=1;;
+    h) usage && exit 0;;
+    *) usage && exit 1;;
   esac
 done
 
-if [ $(uname) = 'Darwin' ]; then
+if [ "$(uname)" = 'Darwin' ]; then
   # TODO: test in linux
-  DIR=$(dirname $(realpath "$0"))
+  DIR="$(dirname "$(realpath "$0")")"
 else
   DIR=$(dirname "$(readlink -f "$0")")
 fi
-FROMTO="$(dirname "$DIR")/bin/fromto"
 # shellcheck source=/dev/null
 source "$DIR/common"
-FORCEREINSTALL=${FORCEREINSTALL:-}
 sudo -k
 
-add_line_to() {
-  DST_FILE="$1"
-  LINE_TO_ADD="$2"
-  COMMENT_CHAR="$3"
-  FULL_LINE="$LINE_TO_ADD $COMMENT_CHAR  Added by holchain"
-  if grep --no-messages --quiet "$FULL_LINE" "$DST_FILE"; then
-    echo "  Already exists in $(basename "$DST_FILE")"
+function include_in() {
+  local dest="$1"
+  local content="$2"
+  local comment_char="$3"
+  content="$content $comment_char  Added by holchain"
+  if grep --no-messages --quiet "$content" "$dest"; then
+    echo "  Already exists in $(basename "$dest")"
+  elif [ -z "$dry_run" ]; then
+    echo "$content" >> "$dest"
+    echo "  Appended config to $(basename "$dest")"
   else
-    echo "$FULL_LINE" >> "$DST_FILE"
-    echo "  Appended config to $(basename "$DST_FILE")"
-  fi
-}
-
-add_to() {
-  DST_FILE="$1"
-  FILE_TO_ADD="$2"
-  COMMENT_CHAR="$3"
-  BEGIN_LINE="$COMMENT_CHAR  Begin holchain block"
-  END_LINE="$COMMENT_CHAR  End holchain block"
-  if [ ! -e "$DST_FILE" ]; then
-    echo "  $DST_FILE does not exist, skipping"
-    return
-  fi
-  grep --no-messages --quiet "$BEGIN_LINE" "$DST_FILE"
-  LINES_NOT_FOUND=$?
-  TMPFILE=$(mktemp)
-  # shellcheck source=/dev/null
-  {
-    . "$FROMTO" -vft "$BEGIN_LINE" "$END_LINE" < "$DST_FILE"
-    echo "$BEGIN_LINE"
-    cat "$FILE_TO_ADD"
-    echo "$END_LINE"
-  } >> "$TMPFILE"
-  cp "$DST_FILE" "$FILE_TO_ADD.backup" || exit 1
-  mv "$TMPFILE" "$DST_FILE"
-  if [ $LINES_NOT_FOUND -eq 0 ]; then
-    echo "  Updated config in $DST_FILE"
-  else
-    echo "  Added config to $DST_FILE"
+    echo "  Would modify $(basename "$dest")"
   fi
 }
 
@@ -75,10 +57,17 @@ function write_to() {
     if cmp --silent "$dest" <(echo "$content"); then
       echo "  $dest is up to date"
       return
+    elif [ -n "$dry_run" ]; then
+      echo "  Would overwrite $dest"
+      return
     fi
-    local tmp=$(mktemp)
+    local tmp
+    tmp=$(mktemp)
     cp "$dest" "$tmp"
     echo "  $dest backup: $tmp"
+  elif [ -n "$dry_run" ]; then
+    echo "  Would create $dest"
+    return
   fi
   echo "$content" |
     sudo -u "$acting_user" tee "$dest" > /dev/null
@@ -86,20 +75,24 @@ function write_to() {
 }
 
 vim_plugin() {
-  GIT_URL="$1"
-  BUNDLE_PATH="$HOME/.vim/bundle"
-  mkdir -p "$BUNDLE_PATH"
-  PACKAGE_NAME=$(echo "$GIT_URL" | sed -E 's:^.*/(.+)\.git:\1:')
-  TARGET_PATH="$BUNDLE_PATH/$PACKAGE_NAME"
-  if [ -d "$TARGET_PATH" ]; then
-    echo "  vim plugin $PACKAGE_NAME already exists"
+  local git_url="$1"
+  local bundle_path="$HOME/.vim/bundle"
+  mkdir -p "$bundle_path"
+  local package_name
+  package_name=$(echo "$git_url" | sed -E 's:^.*/(.+)\.git:\1:')
+  local target_path="$bundle_path/$package_name"
+  if [ -d "$target_path" ]; then
+    echo "  vim plugin $package_name already exists"
     return 1
-  elif [ ! -e "$TARGET_PATH" ]; then
-    echo "  getting vim plugin $PACKAGE_NAME"
-    git clone "$GIT_URL" "$TARGET_PATH"
+  elif [ -n "$dry_run" ]; then
+    echo "  Would download vim plugin $package_name"
+    return 1
+  elif [ ! -e "$target_path" ]; then
+    echo "  getting vim plugin $package_name"
+    git clone "$git_url" "$target_path"
     return 0
   else
-    echo "  vim plugin $PACKAGE_NAME cannot be downloaded"
+    echo "  vim plugin $package_name cannot be downloaded"
     return 1
   fi
 }
@@ -110,19 +103,24 @@ function copy_with_backup() {
   if cmp --silent "$dest" "$src"; then
     echo "  Not changed: $(basename "$src")"
     return
+  elif [ -n "$dry_run" ]; then
+    echo "  Would overwrite $dest"
+    return
   fi
-  cp "$dest" "$dest.bak"
+  if [ -e "$dest" ]; then
+    cp "$dest" "$dest.bak"
+  fi
   cp "$src" "$dest"
 }
 
-echo 'adding rc files'
+echo 'Adding rc files'
 # TODO: had to do this to ~/.bash_profile on mac, check bash version
-add_line_to "$BASHRC" "source $DIR/bashrc" "#"
-add_line_to "$PROFILE" "source $DIR/profile" "#"
-add_line_to "$VIMRC" "source $DIR/vimrc" '"'
-add_line_to "$VIMRC" "source $DIR/vimrcpython" '"'
+include_in "$BASHRC" "source $DIR/bashrc" "#"
+include_in "$PROFILE" "source $DIR/profile" "#"
+include_in "$VIMRC" "source $DIR/vimrc" '"'
+include_in "$VIMRC" "source $DIR/vimrcpython" '"'
 copy_with_backup "$I3CONFIG" "$DIR/i3config"
-add_to "$TMUXCONFIG" "$DIR/tmuxconf" "#"
+copy_with_backup "$TMUXCONFIG" "$DIR/tmuxconf" "#"
 
 #if [ $(uname) != 'Darwin' ]; then
 #  echo 'updating system config'
@@ -130,72 +128,96 @@ add_to "$TMUXCONFIG" "$DIR/tmuxconf" "#"
 #fi
 
 echo 'creating directories'
-mkdir -p "$HOME/screenshots"
-mkdir -p "$HOLCONFIGDIR"
+if [ -z "$dry_run" ]; then
+  mkdir -p "$HOME/screenshots"
+  mkdir -p "$HOLCONFIGDIR"
+else
+  echo " Would create $HOME/screenshots"
+  echo " Would create $HOLCONFIGDIR"
+fi
 
 brew_install () {
-  local cur=$(brew list -1)
-  local args=($*)
-  for p in ${args[@]}; do
+  local cur
+  local args=("$@")
+  cur=$(brew list -1)
+  for p in "${args[@]}"; do
     if echo "$cur" | grep --no-messages --quiet "$p"; then
       echo "  $p already installed"
       continue
     fi
-    brew install "$p" --with-default-names
-    echo "  $p installed"
+    if [ -z "$dry_run" ]; then
+      brew install "$p" --with-default-names
+      echo "  $p installed"
+    else
+      echo "  Would brew-install $p"
+    fi
   done
 }
 
-if [ $(uname) = 'Darwin' ]; then
+if [ "$(uname)" = 'Darwin' ]; then
   brew_install gcc coreutils binutils diffutils ed findutils gawk gnu-indent \
     gnu-sed gnu-tar gnu-which gnutls grep gzip watch wdiff wget bash gdb \
     gpatch less m4 make file-formula git openssh perl python
-  add_line_to "$GDBCONFIG" 'set startup-with-shell off' '#'
+  include_in "$GDBCONFIG" 'set startup-with-shell off' '#'
   if [ ! -e /usr/local/bin/gcc ]; then
-    sudo ln -s /usr/local/bin/gcc-8 /usr/local/bin/gcc
+    if [ -z "$dry_run" ]; then
+      sudo ln -s /usr/local/bin/gcc-8 /usr/local/bin/gcc
+    else
+      echo "  would create symlink /usr/local/bin/gcc"
+    fi
   fi
 fi
 clone_and_compile () {
   local git_url="$1"
-  local configure_params="$2"
-  local name=$(echo "$git_url" | sed -E 's:^.*/(.+)\.git:\1:')
-  if [ -d $HOME/develop/$name ]; then
+  shift
+  local configure_params=("$@")
+  local name
+  name=$(echo "$git_url" | sed -E 's:^.*/(.+)\.git:\1:')
+  local target_dir="$clone_dir/$name"
+  if [ -d "$target_dir" ]; then
     # TODO: add a force option to easily retry in case compilation fails
     echo "  $name already exists"
     return
+  elif [ -n "$dry_run" ]; then
+    echo "  Would clone and compile $name"
+    return
   fi
-  mkdir -p $HOME/develop
-  cd $HOME/develop
-  git clone $git_url
-  cd $name
+  mkdir -p "$target_dir"
+  git clone "$git_url" "$target_dir"
   echo "  $name downloaded"
+  cd "$target_dir"
   if [ -f configure ]; then
-    ./configure $configure_params
+    ./configure "${configure_params[@]}"
   fi
   make -j 8
-  sudo make install
+  #sudo make install
 }
 
 echo 'Compiling software'
-clone_and_compile https://github.com/vim/vim.git '--enable-luainterp \
+clone_and_compile https://github.com/vim/vim.git --enable-luainterp \
   --enable-python3interp --enable-perlinterp --enable-rubyinterp \
   --enable-tclinterp --enable-cscope --disable-sysmouse  --with-features=huge \
-  --enable-multibyte --disable-gui --enable-fail-if-missing'
+  --enable-multibyte --disable-gui --enable-fail-if-missing
 
 function dnf_install () {
-  local tmp="$(mktemp)"
-  local args=($*)
-  dnf list --installed --quiet ${args[@]} > "$tmp"
-  local count="$(awk '{ if( $3 && !$4) {print $1;}}' < "$tmp" | wc -l)"
+  local args=("$@")
+  local count
+  local tmp
+  tmp="$(mktemp)"
+  dnf list --installed --quiet "${args[@]}" > "$tmp"
+  count="$(awk '{ if( $3 && !$4) {print $1;}}' < "$tmp" | wc -l)"
   rm "$tmp"
   if [ "$count" -eq ${#args[@]} ]; then
     echo "  All packages already installed"
     return
+  elif [ -n "$dry_run" ]; then
+    echo "  Would dnf-install ${args[*]}"
+    return
   fi
-  sudo dnf install ${args[@]}
+  sudo dnf install "${args[@]}"
 }
 
-if [ $(uname) = 'Linux' ]; then
+if [ "$(uname)" = 'Linux' ] && [ -z "$server_mode" ]; then
   echo 'xorg setup'
   xorg_touchpad='Section "InputClass"
         Identifier "touchpad"
@@ -223,16 +245,20 @@ if [ $(uname) = 'Linux' ]; then
   # assuming fedora
   dnf_install i3 i3status dmenu i3lock xbacklight feh conky \
     NetworkManager network-manager-applet light scrot irssi \
-    xdotool xsel
+    xdotool xsel ShellCheck tmux
 fi
 
 function download_to () {
   local target="$1"
   local url="$2"
-  local path=$(dirname "$target")
-  local name=$(basename "$target")
-  if [ -e "$target" ] && [ -z "$FORCEREINSTALL" ]; then
+  local path
+  local name
+  path=$(dirname "$target")
+  name=$(basename "$target")
+  if [ -e "$target" ]; then
     echo "  $name exists, skipping"
+  elif [ -n "$dry_run" ]; then
+    echo "  Would download $name to $target"
   else
     mkdir -p "$path"
     curl -LSso "$target" "$url"
@@ -246,10 +272,10 @@ vim_plugin 'https://github.com/wikitopian/hardmode.git' || true
 vim_plugin 'https://github.com/scrooloose/nerdtree.git' || true
 vim_plugin 'https://github.com/theevocater/thrift.vim.git' || true
 if vim_plugin 'https://github.com/wincent/command-t.git'; then
-  (cd $HOME/.vim/bundle/command-t/ruby/command-t/ext/command-t; ruby extconf.rb;  make; )
+  (cd "$HOME/.vim/bundle/command-t/ruby/command-t/ext/command-t"; ruby extconf.rb;  make; )
 fi
 
 # irssi stuff
 echo 'downloading irssi plugins'
-mkdir -p ~/.irssi/scripts
-download_to $HOME/.irssi/scripts/nickcolor.pl https://raw.githubusercontent.com/vigith/random/master/irssi/nickcolor.pl
+
+download_to "$HOME/.irssi/scripts/nickcolor.pl" https://raw.githubusercontent.com/vigith/random/master/irssi/nickcolor.pl
