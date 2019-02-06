@@ -111,7 +111,7 @@ function copy_with_backup() {
     cp "$dest" "$dest.bak"
   fi
   cp "$src" "$dest"
-  printf "updated $dest\n"
+  printf "  Updated $dest\n"
 }
 
 echo 'Adding rc files'
