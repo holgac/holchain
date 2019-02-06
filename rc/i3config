@@ -102,16 +102,16 @@ set $ws9 "9"
 set $ws10 "10"
 
 # switch to workspace
-bindsym $mod+1 workspace $ws1
-bindsym $mod+2 workspace $ws2
-bindsym $mod+3 workspace $ws3
-bindsym $mod+4 workspace $ws4
-bindsym $mod+5 workspace $ws5
-bindsym $mod+6 workspace $ws6
-bindsym $mod+7 workspace $ws7
-bindsym $mod+8 workspace $ws8
-bindsym $mod+9 workspace $ws9
-bindsym $mod+0 workspace $ws10
+bindsym $mod+1 exec i3helper gotows $ws1
+bindsym $mod+2 exec i3helper gotows $ws2
+bindsym $mod+3 exec i3helper gotows $ws3
+bindsym $mod+4 exec i3helper gotows $ws4
+bindsym $mod+5 exec i3helper gotows $ws5
+bindsym $mod+6 exec i3helper gotows $ws6
+bindsym $mod+7 exec i3helper gotows $ws7
+bindsym $mod+8 exec i3helper gotows $ws8
+bindsym $mod+9 exec i3helper gotows $ws9
+bindsym $mod+0 exec i3helper gotows $ws10
 
 # move focused container to workspace
 bindsym $mod+Shift+1 move container to workspace $ws1
@@ -168,6 +168,7 @@ bar {
 }
 
 exec_always --no-startup-id nm-applet --sm-disable
+exec_always --no-startup-id blueman-applet
 exec xrandr --output eDP-1 --mode '1920x1080'
 
 mode "Are you sure?" {

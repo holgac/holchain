@@ -111,6 +111,7 @@ function copy_with_backup() {
     cp "$dest" "$dest.bak"
   fi
   cp "$src" "$dest"
+  printf "updated $dest\n"
 }
 
 echo 'Adding rc files'
@@ -245,7 +246,7 @@ if [ "$(uname)" = 'Linux' ] && [ -z "$server_mode" ]; then
   # assuming fedora
   dnf_install i3 i3status dmenu i3lock xbacklight feh conky \
     NetworkManager network-manager-applet light scrot irssi \
-    xdotool xsel ShellCheck tmux
+    xdotool xsel ShellCheck tmux blueman
 fi
 
 function download_to () {

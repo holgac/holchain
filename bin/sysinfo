@@ -38,6 +38,12 @@ isterm() {
   wincmd | grep --quiet --ignore-case 'terminal'
 }
 
+function focusedws() {
+  i3-msg -t get_workspaces |
+    jq '.[] | select(.focused==true).name' |
+    tr -d \"
+}
+
 case "$CMD" in
   sinkid)
     # prints pulseaudio sink id
@@ -51,6 +57,9 @@ case "$CMD" in
   wincmd)
     # cmdline of the focused window
     wincmd ;;
+  focusedws)
+    # get focused i3 workspace
+    focusedws ;;
   isterm)
     # exits with status 1 if focused window is a terminal, 0 otherwise
     isterm ;;

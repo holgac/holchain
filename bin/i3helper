@@ -36,6 +36,16 @@ paste() {
   fi
 }
 
+function gotows() {
+  local newws="$1"
+  local currws=$(sysinfo focusedws)
+  if [ "$newws" == "$currws" ]; then
+    i3-msg "focus right"
+  else
+    i3-msg "workspace $newws"
+  fi
+}
+
 case "$CMD" in
   lock)
     # locks the system, requires password to log back in
@@ -78,8 +88,10 @@ case "$CMD" in
     pactl set-sink-mute "$(sysinfo sinkid)" toggle ;;
   screenshot)
     # takes a screenshot of the selected rectangle
-    scrot -s -e "mv \$f $HOME/screenshots/"
-  ;;
+    scrot -s -e "mv \$f $HOME/screenshots/" ;;
+  gotows)
+    # focuses the given workspace
+    gotows "$2" ;;
   left)
     # sets external display to the left of the laptop screen
     xrandr --output "$(sysinfo seconddisplay)" --auto --left-of eDP-1 --primary
