@@ -200,3 +200,8 @@ function xeger () {
     }
   '
 }
+
+function burpresp () {
+  xq "$1" 'items.item[0].response' |
+    base64 -d | sed -n 's/for (;;);//p'
+}

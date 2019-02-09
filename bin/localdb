@@ -1,21 +1,24 @@
 #!/usr/bin/env bash
 # Usage: localdb [KEY [VALUE]]
-DBFILE="$HOLCONFIGDIR/localdb.json"
-if [ ! -f "$DBFILE" ]; then
-  echo '{}' > "$DBFILE"
+dbfile="$HOLCONFIGDIR/localdb.json"
+if [ ! -f "$dbfile" ]; then
+  echo '{}' > "$dbfile"
 fi
 
 if [ -z "$1" ]; then
   # Pretty-print everything on no input
-  jq . < "$DBFILE"
+  jq . < "$dbfile"
 elif [ -z "$2" ]; then
   # Get result on single input
-  KEY=$(urlencode "$1")
-  jq '.["'"$KEY"'"]' 2>&1 < "$DBFILE" | tr -d \" | urldecode && printf "\\n"
+  key=$(urlencode "$1")
+  jq '.["'"$key"'"]' 2>&1 < "$dbfile" | tr -d \" | urldecode
+  if [ -t 1 ]; then
+    printf '\n'
+  fi
 else
   # Set on two inputs
-  KEY=$(urlencode "$1")
-  VALUE=$(urlencode "$2")
-  RES=$(jq -c '. + {"'"$KEY"'": "'"$VALUE"'"}' < "$DBFILE")
-  echo "$RES" > "$DBFILE"
+  key=$(urlencode "$1")
+  value=$(urlencode "$2")
+  res=$(jq -c '. + {"'"$key"'": "'"$value"'"}' < "$dbfile")
+  echo "$res" > "$dbfile"
 fi

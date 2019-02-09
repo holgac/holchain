@@ -63,6 +63,9 @@ case "$CMD" in
   isterm)
     # exits with status 1 if focused window is a terminal, 0 otherwise
     isterm ;;
+  primarydisplay)
+    # name of the laptop monitor
+    printf 'eDP-1' ;;
   seconddisplay)
     # name of the non-laptop monitor
     getseconddisplay;;
