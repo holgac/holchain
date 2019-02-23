@@ -7,17 +7,20 @@ usage () {
   echo "  -v: Invert the search"
   echo "  -f: Print FROM lines too"
   echo "  -t: Print TO lines too"
+  echo "  -o: Match once"
 }
 
 INVERSE=0
 PRINTFROM=0
 PRINTTO=0
+MATCHONCE=0
 
-while getopts "vhft?" OPT; do
+while getopts "ovhft?" OPT; do
   case "$OPT" in
     v) INVERSE=1;;
     f) PRINTFROM=1;;
     t) PRINTTO=1;;
+    o) MATCHONCE=1;;
     h|?) usage && exit 0;;
     *) usage && exit 1;;
   esac
@@ -41,12 +44,16 @@ if [ $INVERSE -eq 1 ]; then
   COND="!($COND)"
 fi
 
-awk "BEGIN {ctr=0;}
+awk "BEGIN {ctr=0; matched=0;}
   {
-    from = index(\$0, \"$FROM\");
-    to = index(\$0, \"$TO\");
-    if(from) ctr=1;
-    if ($COND) print \$0;
-    if(to) ctr=0;
+    if(matched == 1) {
+      print \$0;
+    } else {
+      from = index(\$0, \"$FROM\");
+      to = index(\$0, \"$TO\");
+      if(from) ctr=1;
+      if ($COND) print \$0;
+      if(to) { ctr=0; matched=\"$MATCHONCE\"; }
+    }
   }
 "
