@@ -11,6 +11,8 @@ set relativenumber number incsearch
 set shell=/bin/bash\ --login
 set shellcmdflag=-ic
 set hidden
+set t_BE=
+set wildmenu
 nnoremap <leader>sn :noh<CR>
 " dont use registers on x key
 noremap x "_x

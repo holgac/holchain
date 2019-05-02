@@ -1,0 +1,156 @@
+#!/usr/bin/env bash
+set -o errexit -o pipefail
+
+# howto write usage thing?
+
+usage () {
+  echo "$0 [OPTIONS] -- [OPTION_DEFINITION] [-- OPTION_DEFINITION]..."
+  echo "Options:"
+  echo "  -h: Display this help and exit"
+  echo "  -d: A description of what the script does"
+  echo "  -u: Update given file with new settings"
+  echo "      Takes a backup, but overwrites all arg parsing!"
+  echo "Option definition:"
+  echo "  Options can be specified with these options:"
+  echo "    -o NAME: Option name, required"
+  echo "    -h HELP: Description to print in help menu, required"
+  echo "    -a ADDRESS: Variable to store the option value to, required"
+  echo "    -f VALUE: Value to store if a flag (mutually exclusive with -v)"
+  echo "    -d DEFAULT: Default value"
+  echo "    -r: Option is required (mutually exclusive with -d)"
+  echo "    -v NAME: The option requires a value to be passed"
+}
+
+description=
+updatefile=
+while getopts "d:u:h?" OPT; do
+  case "$OPT" in
+    d) description="$OPTARG";;
+    u) updatefile="$OPTARG";;
+    h|?) usage; exit 0;;
+    *) usage; exit 1;;
+  esac
+done
+
+if [ -n "$updatefile" ] && [ ! -f "$updatefile" ]; then
+  printf 'File %s does not exist!\n' "$updatefile"
+  exit 1
+fi
+
+if [ -n "$description" ]; then
+  description_str="  printf '  $description\\\\n'\n"
+fi
+
+declare -A options
+declare -A addresses
+usage_str=
+getoptsarg=
+optsactions=
+vardefs=
+varchecks=
+
+while [ -n "${!OPTIND}" ]; do
+  name=
+  helpstr=
+  address=
+  flagvalue=
+  defaultvalue=
+  required=
+  valuename=
+  while getopts "o:h:a:f:d:rv:" OPT; do
+    case "$OPT" in
+      o) name="$OPTARG";;
+      h) helpstr="$OPTARG";;
+      a) address="$OPTARG";;
+      f) flagvalue="$OPTARG";;
+      d) defaultvalue="$OPTARG";;
+      r) required=1;;
+      v) valuename="$OPTARG";;
+      *) usage; exit 1;;
+    esac
+  done
+  if [ -z "$name" ] || [ -z "$helpstr" ] || [ -z "$address" ]; then
+    printf 'You need to pass name, help and address!\n'
+    usage
+    exit 1
+  fi
+  if [ "$name" == "?" ] || [ "$name" == "h" ]; then
+    printf '? and h options are reserved for help\n'
+    exit 1
+  fi
+  if [ "$required" == 1 ] && [ -n "$defaultvalue" ]; then
+    printf 'Option %s is required but has default value!\n' "$name"
+    exit 1
+  fi
+  if [ -n "$flagvalue" ] && [ -n "$valuename" ]; then
+    printf 'Option %s has both flag value and value name!\n' "$name"
+    exit 1
+  fi
+  if [ -z "$flagvalue" ]; then
+    flagvalue=1
+  fi
+  if [ "${options[$name]+_}" ]; then
+    printf 'Duplicate option: %s\n' "$name"
+    exit 1
+  fi
+  if [ "${addresses[$address]+_}" ]; then
+    printf 'Duplicate address: %s\n' "$address"
+    exit 1
+  fi
+  addresses[$address]=1
+  options[$name]=1
+  if [ -n "$defaultvalue" ]; then
+    helpstr+=" (defaults to $defaultvalue)"
+  fi
+  argdef="-$name"
+  if [ -n "$valuename" ]; then
+    argdef+=" $valuename"
+    getoptsarg+="$name:"
+    optsactions+="    $name) $address=\"\$OPTARG\";;\n"
+  else
+    getoptsarg+="$name"
+    optsactions+="    $name) $address=$flagvalue;;\n"
+  fi
+  if [ -n "$required" ]; then
+    varchecks+="if [ -z \"\$$address\" ]; then\n  usage; exit 1\nfi\n"
+    helpstr+=', required'
+  fi
+  usage_str+="  printf '  $argdef: $helpstr\\\n'\n"
+  vardefs+="$address=$defaultvalue\n"
+done
+getoptsarg+='h?'
+
+function generate() {
+  # shellcheck disable=SC2016
+  printf '#!/usr/bin/env bash
+set -o nounset -o errexit -o pipefail
+
+# Generated with holgac/bashscriptgen
+# Arguments: %s
+
+usage () {
+  printf "%%s [OPTIONS] [--]\\n" "$0"
+%b  printf "Options:\\n"
+  printf "  -h: Display this help and exit\\n"
+%b}
+
+%b
+while getopts "%s" OPT; do
+  case "$OPT" in
+%b    h|?) usage; exit 0;;
+    *) usage; exit 1;;
+  esac
+done
+%b
+# bashscriptgen end (do not remove this)
+' "$*" "$description_str" "$usage_str" "$vardefs" "$getoptsarg" "$optsactions" "$varchecks"
+}
+
+if [ -z "$updatefile" ]; then
+  generate "$@"
+else
+  cp "$updatefile" "$updatefile.bak"
+  out="$(generate "$@")"
+  out+="$(fromto -oftv '#!/usr/bin/env bash' 'bashscriptgen end' < "$updatefile")"
+  printf '%s' "$out" > "$updatefile"
+fi

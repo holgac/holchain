@@ -167,16 +167,12 @@ bar {
         status_command i3status
 }
 
-exec_always --no-startup-id nm-applet --sm-disable
-exec_always --no-startup-id blueman-applet
-exec xrandr --output eDP-1 --mode '1920x1080'
-
 mode "Are you sure?" {
   bindsym Return exec --no-startup-id i3helper execute, mode "default"
   bindsym Escape mode "default"
 }
 
-set $mode_system "(l)ock, l(o)gout, (s)uspend, (h)ibernate, (r)eboot, (S)hutdown, (m)onitor, (M)onitoroff, m(i)rror"
+set $mode_system "(l)ock, l(o)gout, (s)uspend, (h)ibernate, (r)eboot, (S)hutdown, (m)laptop, (d)esk, m(i)rror, (p)resentation"
 mode $mode_system {
     bindsym l exec --no-startup-id i3helper prompt "i3helper lock", mode "default"
     bindsym o exec --no-startup-id i3helper prompt "i3helper logout", mode "default"
@@ -184,8 +180,10 @@ mode $mode_system {
     bindsym h exec --no-startup-id i3helper prompt "i3helper hibernate", mode "default"
     bindsym r exec --no-startup-id i3helper prompt "i3helper reboot", mode "default"
     bindsym Shift+s exec --no-startup-id i3helper prompt "i3helper shutdown", mode "default"
-    bindsym m exec --no-startup-id i3helper left, mode "default"
-    bindsym Shift+m exec --no-startup-id i3helper scroff, mode "default"
+    bindsym m exec --no-startup-id i3helper laptop, mode "default"
+    bindsym d exec --no-startup-id i3helper desk, mode "default"
+    bindsym i exec --no-startup-id i3helper mirror, mode "default"
+    bindsym p exec --no-startup-id i3helper presentation, mode "default"
     # back to normal: Enter or Escape
     bindsym Return mode "default"
     bindsym Escape mode "default"
@@ -204,3 +202,10 @@ bindsym XF86MonBrightnessUp exec light -A 5
 bindsym XF86MonBrightnessDown exec light -U 5
 bindsym $mod+Shift+m exec i3-input -l 1 -F 'mark %s' -P 'mark given window'
 bindsym $mod+m exec i3-input -l 1 -F '[con_mark="%s"] focus' -P 'go to mark'
+bindsym $mod+Mod1+c exec i3-input -l 2 -F 'exec i3helper copytoregister "%s"' -P 'copy to register'
+bindsym $mod+Mod1+v exec i3-input -l 2 -F 'exec i3helper pastefromregister "%s"' -P 'paste from register'
+
+exec_always --no-startup-id nm-applet --sm-disable
+exec_always --no-startup-id blueman-applet
+exec --no-startup-id pulseaudio -D
+exec xrandr --output eDP-1 --mode '1920x1080'

@@ -12,7 +12,7 @@ lock() {
 
 upmeta() {
   xdotool keyup meta
-  sleep 0.5
+  sleep 0.1
 }
 
 copy() {
@@ -24,6 +24,28 @@ copy() {
     xdotool key 'Ctrl+c'
     xsel -ob | xsel -ip
   fi
+}
+
+copytoregister() {
+  local reg="$1"
+  if sysinfo isterm; then
+    localdb "clipboard.$reg" "$(xsel -op)"
+  else
+    upmeta
+    # Ctrl+c is actually a better solution for non-terminals
+    xdotool key 'Ctrl+c'
+    localdb "clipboard.$reg" "$(xsel -ob)"
+  fi
+}
+
+pastefromregister() {
+  local reg="$1"
+  if sysinfo isterm; then
+    localdb "clipboard.$reg" | xsel -ip
+  else
+    localdb "clipboard.$reg" | xsel -ib
+  fi
+  paste
 }
 
 paste() {
@@ -92,14 +114,32 @@ case "$CMD" in
   gotows)
     # focuses the given workspace
     gotows "$2" ;;
-  left)
-    # sets external display to the left of the laptop screen
-    xrandr --output "$(sysinfo seconddisplay)" --auto --left-of eDP-1 --primary
-    xrandr --output eDP-1 --mode '1360x768' ;;
-  scroff)
-    # disables external display
-    xrandr --output "$(sysinfo seconddisplay)" --off
-    xrandr --output eDP-1 --mode '1360x768';;
+  presentation)
+    # Presentation mode, enables both, keeps stuff in laptop screen
+    xrandr --output HDMI-2 --off --output HDMI-1 --off --output DP-2 --off\
+      --output eDP-1 --mode 1920x1080 --primary --pos 0x0 --rotate normal \
+      --output DP-1 --mode 2560x1600 --pos 1920x0 --rotate normal ;;
+  desk)
+    # Desk mode, disables laptop screen
+    xrandr --output HDMI-2 --off --output HDMI-1 --off --output DP-2 --off\
+      --output DP-1 --mode 2560x1600 --primary --pos 1920x0 --rotate normal\
+      --output eDP-1 --off ;;
+  laptop)
+    # Disables external display
+    xrandr --output HDMI-2 --off --output HDMI-1 --off --output DP-2 --off\
+      --output DP-1 --off \
+      --output eDP-1 --mode 1920x1080 --pos 0x0 --rotate normal ;;
+  mirror)
+    # Mirrors display
+    xrandr --output HDMI-2 --off --output HDMI-1 --off --output DP-2 --off \
+      --output DP-1 --primary --mode 2560x1600 --pos 0x0 --rotate normal \
+      --output eDP-1 --mode 2560x1440 --pos 0x0 --rotate normal ;;
+  copytoregister)
+    # copies to given register
+    copytoregister "$2" ;;
+  pastefromregister)
+    # pastes from register
+    pastefromregister "$2" ;;
   copy)
     # copies the selection to clipboard
     copy ;;
