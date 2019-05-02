@@ -174,7 +174,6 @@ class CodeReview:
     vim.command(f'nnoremap <C-g><C-o> :python3 CodeReview.discard()<CR>')
     vim.command(f'nnoremap <C-g><C-i> :python3 CodeReview.again()<CR>')
 
-
   @staticmethod
   def again():
     vim.command(f'buffer {CodeReview.bufno}')
@@ -196,5 +195,24 @@ class CodeReview:
     if len(vim.current.buffer):
       vim.command(f'call cursor({ln}, 1)')
       vim_py.open_file(*vim_py.path_under_cursor())
+
+  @staticmethod
+  def append(cmd):
+    vim.command(f'buffer {CodeReview.bufno}')
+    vim.command(f'0read !{cmd}')
+    vim.command(f'call cursor(1, 1)')
+
+  # TODO: only appends now
+  @staticmethod
+  def prompt():
+    vim.command('call inputsave()')
+    try:
+      cmd = vim.eval('input("$ ")')
+    except KeyboardInterrupt:
+      return
+    vim.command('call inputrestore()')
+    if len(cmd.strip(' ')) == 0:
+      return
+    CodeReview.append(cmd)
 
 endpython

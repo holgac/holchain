@@ -21,6 +21,8 @@ nnoremap <leader>sfn :let @" = expand("%:t")<CR>
 nnoremap <leader>sfp :let @" = expand("%:p")<CR>
 " get dir (path minus filename)
 nnoremap <leader>sfd :let @" = expand("%:h")<CR>
+" get filename
+nnoremap <leader>sff :let @" = expand("%")<CR>
 " Open the same file in a new tab
 " reload vimrc
 nnoremap <leader>sso :so ~/.vimrc<CR>
@@ -216,6 +218,14 @@ endpython
 endfunction
 
 nnoremap <silent> <Leader>r :call RunPrompt()<CR>
+
+function! CRAppend()
+python3 << endpython
+CodeReview.prompt()
+endpython
+endfunction
+" TODO: move somehwere
+nnoremap <silent> <Leader>ssa :call CRAppend()<CR>
 
 command! -nargs=+ Run call Run("<args>")
 " TODO: use vim_py.add_keymap
