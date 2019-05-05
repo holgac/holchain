@@ -29,6 +29,7 @@ export PATH
 #export PATH=$(echo $PATH | tr ':' '\n' | grep -v "$1" | tr '\n' ':' |\
 #  sed -E 's/$(.*):$/'"$REPO_DIR/bin:/usr/local/bin:$PATH"'\1/')
 export HOLCONFIGDIR="$HOME/.holchain"
+stty -ixon
 
 
 # Configuration for builtins {{{

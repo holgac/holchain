@@ -6,35 +6,35 @@ if [ "${CMD:=help}" = "help" ]; then
   printusage "$0" && exit 0
 fi
 
-getsinkid() {
+function getsinkid() {
   SINKS=$(pactl list short sinks)
   if echo "$SINKS" | grep --quiet bluez_sink; then
-    echo "$BLUEZ" | head -n 1 | cut -f 1
+    echo "$SINKS" | grep bluez_sink | head -n 1 | cut -f 1
   else
     echo "$SINKS" | head -n 1 | cut -f 1
   fi
 }
 
-curwinid() {
+function curwinid() {
   xprop -root | awk '/_NET_ACTIVE_WINDOW\(WINDOW\)/{print $NF}'
 }
 
-winpid() {
+function winpid() {
   xprop -id "$1" | awk '/_NET_WM_PID\(CARDINAL\)/{print $NF}'
 }
 
-getseconddisplay() {
+function getseconddisplay() {
   if DPINFO=$(xrandr | grep -v 'eDP-1' | grep ' connected'); then
     echo "$DPINFO" | cut -d ' ' -f 1
   fi
   exit 1
 }
 
-wincmd() {
+function wincmd() {
   cat "/proc/$(winpid "$(curwinid)")/cmdline"
 }
 
-isterm() {
+function isterm() {
   wincmd | grep --quiet --ignore-case 'terminal'
 }
 
