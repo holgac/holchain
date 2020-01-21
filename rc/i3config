@@ -193,12 +193,15 @@ bindsym $mod+p mode $mode_system
 bindsym $mod+c exec --no-startup-id i3helper copy, mode "default"
 bindsym $mod+v exec --no-startup-id i3helper paste, mode "default"
 
-set $mode_multimedia "(p)lay/pause (s)top (n)ext (b)prev"
+set $mode_multimedia "(p)lay/pause (s)top (n)ext (b)prev (e)light (w)nol p(a)ssword"
 mode $mode_multimedia {
     bindsym p exec --no-startup-id playerctl play-pause
     bindsym s exec --no-startup-id playerctl stop
     bindsym n exec --no-startup-id playerctl next
     bindsym b exec --no-startup-id playerctl previous
+    bindsym w exec --no-startup-id brightnessctl -d tpacpi::kbd_backlight set 0, mode "default"
+    bindsym e exec --no-startup-id brightnessctl -d tpacpi::kbd_backlight set 1, mode "default"
+    bindsym a exec --no-startup-id pwgen -yBnc 16 1 | xsel -ib, mode "default"
     # back to normal: Enter or Escape
     bindsym Return mode "default"
     bindsym Escape mode "default"
@@ -222,6 +225,7 @@ bindsym $mod+Shift+m exec i3-input -l 1 -F 'mark %s' -P 'mark given window'
 bindsym $mod+m exec i3-input -l 1 -F '[con_mark="%s"] focus' -P 'go to mark'
 bindsym $mod+Mod1+c exec i3-input -l 2 -F 'exec i3helper copytoregister "%s"' -P 'copy to register'
 bindsym $mod+Mod1+v exec i3-input -l 2 -F 'exec i3helper pastefromregister "%s"' -P 'paste from register'
+bindsym $mod+Mod1+t exec i3-input -l 3 -F 'exec i3helper timer "%s"' -P 'Set timer'
 
 exec_always --no-startup-id nm-applet --sm-disable
 exec_always --no-startup-id blueman-applet

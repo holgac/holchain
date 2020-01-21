@@ -120,6 +120,7 @@ include_in "$BASHRC" "source $DIR/bashrc" "#"
 include_in "$PROFILE" "source $DIR/profile" "#"
 include_in "$VIMRC" "source $DIR/vimrc" '"'
 include_in "$VIMRC" "source $DIR/vimrcpython" '"'
+mkdir -p ~/.config/i3
 copy_with_backup "$I3CONFIG" "$DIR/i3config"
 copy_with_backup "$TMUXCONFIG" "$DIR/tmuxconf" "#"
 
@@ -228,6 +229,7 @@ if [ "$(uname)" = 'Linux' ] && [ -z "$server_mode" ]; then
         Option "NaturalScrolling" "on"
         Option "ScrollMethod" "twofinger"
         Option "TappingButtonMap" "lrm"
+        Option "DisableWhileTyping" "false"
   EndSection'
   xorg_keyboard='Section "InputClass"
         Identifier "system-keyboard"

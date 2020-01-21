@@ -68,6 +68,15 @@ function gotows() {
   fi
 }
 
+function timer() {
+  local time="$1"
+  (
+    sleep "$1"
+    espeak-ng oh
+  ) </dev/null >/dev/null 2>&1 &
+  disown
+}
+
 case "$CMD" in
   lock)
     # locks the system, requires password to log back in
@@ -146,5 +155,13 @@ case "$CMD" in
   paste)
     # pastes from clipboard
     paste ;;
+  kblighton)
+    # turn on keyboard backlight
+    brightnessctl --device='tpacpi::kbd_backlight' set 1 ;;
+  kblightoff)
+    # turn on keyboard backlight
+    brightnessctl --device='tpacpi::kbd_backlight' set 0 ;;
+  timer)
+    timer "$2" ;;
   *) printusage "$0" && exit 1
 esac
