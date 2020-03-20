@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+
+function genmsg() {
+  if [ $# -eq 0 ]; then
+      printf '[]'
+      return
+  fi
+  for arg in "$@"; do
+    printf %s\\n "$arg"
+  done | jq --raw-input --slurp 'split("\n") | .[0:-1]'
+}
+
+resp=$(genmsg "$@" | nc -U "/run/user/$UID/holper.sock")
+printf %s "$resp" | jq -rc .response | sed s/\\n/\n/
+code="$(printf %s "$resp" | jq .code)"
+exit "$code"

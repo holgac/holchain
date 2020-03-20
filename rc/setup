@@ -235,6 +235,7 @@ if [ "$(uname)" = 'Linux' ] && [ -z "$server_mode" ]; then
         Identifier "system-keyboard"
         MatchIsKeyboard "on"
         Option "XkbLayout" "us"
+        Option "XKbOptions" "ctrl:nocaps"
   EndSection'
   xorg_path=/etc/X11/xorg.conf.d
   # to avoid unnecessary sudo
@@ -271,7 +272,6 @@ function download_to () {
 
 echo 'downloading vim plugins'
 download_to "$HOME/.vim/autoload/pathogen.vim" 'https://tpo.pe/pathogen.vim'
-vim_plugin 'https://github.com/wikitopian/hardmode.git' || true
 vim_plugin 'https://github.com/scrooloose/nerdtree.git' || true
 vim_plugin 'https://github.com/theevocater/thrift.vim.git' || true
 if vim_plugin 'https://github.com/wincent/command-t.git'; then

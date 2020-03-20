@@ -3,8 +3,9 @@ let mapleader = g:leader
 
 " general config {{{
 syntax on
-set tabstop=2 expandtab autoindent shiftwidth=2 hlsearch backspace=2
-set ruler smartcase ignorecase
+set tabstop=2 softtabstop=2 expandtab shiftwidth=2 backspace=2
+set noautoindent smartindent
+set ruler smartcase ignorecase hlsearch
 set viminfo+='1000,f1,:1000
 set foldmethod=marker
 set relativenumber number incsearch
@@ -30,7 +31,6 @@ nnoremap <leader>sff :let @" = expand("%")<CR>
 nnoremap <leader>sso :so ~/.vimrc<CR>
 " jk to escape
 inoremap jk <esc>
-inoremap <esc> <esc>:call HardModeEcho(g:HardMode_hardmodeMsg)<CR>a
 " }}}
 
 " colours {{{
@@ -38,10 +38,8 @@ hi Comment ctermfg=Cyan
 " }}}
 
 " plugin config {{{
-execute pathogen#infect()
-let g:HardMode_level = 'wannabe' 
-tnoremap jk <Esc>
 function! OnOptionSet()
+  " unmap jk if in paste mode
   if &paste ==# "1"
     tunmap jk
     tunmap <C-w>j
@@ -54,8 +52,8 @@ endfunction
 call OnOptionSet()
 augroup vimrc
   autocmd!
-  autocmd VimEnter,BufNewFile,BufReadPost * silent! call HardMode()
   autocmd OptionSet * silent! call OnOptionSet()
+  autocmd TerminalOpen * silent! setlocal nonumber norelativenumber
 augroup END
 let NERDTreeIgnore=['\.d$[[file]]', '\.o$[[file]]', '\.out$[[file]]']
 nnoremap <C-n> :NERDTreeToggle<CR>
@@ -240,3 +238,16 @@ nnoremap <leader>stw :call Run("hg st")<CR>
 nnoremap <leader>srm :call system("hg resolve --mark")<CR>
 
 " }}}
+
+set nocompatible
+filetype off
+set rtp+=~/.vim/bundle/Vundle.vim
+call vundle#begin()
+Plugin 'VundleVim/Vundle.vim'
+Plugin 'Chiel92/vim-autoformat'
+call vundle#end()
+filetype plugin indent on
+highlight potionComment ctermbg=red ctermfg=blue
+syntax match potionComment "\v +$"
+highlight TrailingWhitespace ctermbg=darkgreen guibg=lightgreen
+match TrailingWhitespace /\s\+$/

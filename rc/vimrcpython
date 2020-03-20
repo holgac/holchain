@@ -38,11 +38,11 @@ class vim_py:
       vim_py.add_keymap(f'{i}{key}', toeval, add_leader, buffer_only)
 
   @staticmethod
-  def set_autocmds(event_fn_pairs):
-    vim.command('augroup rundata')
-    vim.command('autocmd! rundata')
+  def set_autocmds(event_fn_pairs, name='rundata'):
+    vim.command(f'augroup {name}')
+    vim.command(f'autocmd! {name}')
     for (event, fn) in event_fn_pairs:
-        vim.command(f'autocmd rundata {event} * silent! python3 {fn}')
+        vim.command(f'autocmd {name} {event} * silent! python3 {fn}')
     vim.command('augroup END')
 
   @staticmethod

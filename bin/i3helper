@@ -108,15 +108,6 @@ case "$CMD" in
     # executes the last prompted command
     CMD=$(localdb "prompt")
     eval "$CMD";;
-  volup)
-    # turns the volume up
-    pactl set-sink-volume "$(sysinfo sinkid)" +5% ;;
-  voldown)
-    # turns the volume down
-    pactl set-sink-volume "$(sysinfo sinkid)" -5% ;;
-  voltoggle)
-    # mutes/unmutes the sound
-    pactl set-sink-mute "$(sysinfo sinkid)" toggle ;;
   screenshot)
     # takes a screenshot of the selected rectangle
     scrot -s -e "mv \$f $HOME/screenshots/" ;;

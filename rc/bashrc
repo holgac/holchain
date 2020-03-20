@@ -60,6 +60,10 @@ holgac_ps_fn () {
 set_bash_prompt () {
   PS1="$(holgac_ps_fn)"
 }
+
+if [ -n "$VIM_TERMINAL" ]; then
+  PS0=
+fi
 export PROMPT_COMMAND=set_bash_prompt
 export HISTCONTROL='ignoreboth'
 # }}}
@@ -84,6 +88,7 @@ alias rgrep='grep -r'
 alias grep='grep --color=auto'
 alias less='less -R'
 alias curl='curl -LSs'
+alias tailholper='tail -f "$(holper info log_location)"'
 
 #bash meta stuff
 # like `clear`, but cleaner if you scroll up
