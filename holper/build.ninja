@@ -1,0 +1,6 @@
+cflags = -Wall -lboost_program_options -g
+
+rule cc
+  command = g++ $cflags -c $in -o $out
+
+build holper: cc holper.cpp
