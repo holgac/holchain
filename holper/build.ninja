@@ -1,6 +1,12 @@
-cflags = -Wall -lboost_program_options -g
+cflags = -Wall -Werror -g
+ldflags = -lboost_program_options -pthread
 
 rule cc
   command = g++ $cflags -c $in -o $out
 
-build holper: cc holper.cpp
+rule ld
+  command = g++ $cflags $ldflags -o $out $in
+
+build holper.o: cc holper.cpp
+build holper: ld holper.o
+default holper

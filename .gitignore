@@ -34,3 +34,10 @@ npm-debug.log
 
 # Backup rc files
 rc/*.backup
+
+# C/C++ stuff
+*.o
+.ninja_log
+.ninja_deps
+
+holper/holper
