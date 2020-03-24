@@ -2,7 +2,8 @@ cflags = -Wall -Werror -g
 ldflags = -lboost_program_options -pthread
 
 rule cc
-  command = g++ $cflags -c $in -o $out
+  command = g++ $cflags -c -o $out -MD -MF $out.d $in
+  depfile = $out.d
 
 rule ld
   command = g++ $cflags $ldflags -o $out $in
