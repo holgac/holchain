@@ -37,6 +37,7 @@ rc/*.backup
 
 # C/C++ stuff
 *.o
+*.d
 .ninja_log
 .ninja_deps
 

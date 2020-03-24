@@ -10,6 +10,7 @@
 #include <cstdlib>
 #include <vector>
 #include <list>
+#include <forward_list>
 #include <queue>
 #include <memory>
 #include <ctime>
@@ -19,18 +20,161 @@
 #include <boost/program_options.hpp>
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
+#include <boost/optional.hpp>
+#include <stdexcept>
 #define SUCC_OR_RET(fn) SUCC_OR_RET_WITH_LOGGER(context_->logger, fn)
 #define SUCC_OR_RET_WITH_LOGGER(lg, fn) if(0 != (fn)) { (lg)->log(Logger::ERROR, "%s failed", #fn); return 1; }
 #include "consts.h"
 #include "logger.h"
 #include "thread.h"
 
+class Action
+{
+public:
+  virtual std::string act(boost::program_options::variables_map vm) const = 0;
+  virtual boost::optional<boost::program_options::options_description>
+      options() const {
+    return boost::none;
+  }
+  virtual boost::optional<boost::program_options::positional_options_description>
+      positionalOptions() const {
+    return boost::none;
+  }
+};
+
+class Command
+{
+  std::forward_list<std::string> names_;
+  std::string primaryName_;
+  std::string help_;
+  std::unique_ptr<Action> action_;
+  std::list<std::shared_ptr<Command>> children_;
+  boost::program_options::options_description options_;
+  boost::program_options::positional_options_description positionalOptions_;
+public:
+  Command() {}
+
+  void validate() {
+    // TODO: check for duplicate names
+  }
+
+  Command* name(std::string name, bool primary=false) {
+    names_.push_front(name);
+    if (primary || primaryName_.empty()) {
+        primaryName_ = name;
+    }
+    return this;
+  }
+  Command* help(std::string help) {
+    help_ = help;
+    return this;
+  }
+  Command* action(Action* action) {
+    action_.reset(action);
+    return this;
+  }
+
+  std::shared_ptr<Command> addChild() {
+    auto c = std::make_shared<Command>(Command());
+    children_.push_back(c);
+    return c;
+  }
+
+  std::shared_ptr<Command> getChild(std::string name) {
+    for (auto& cmd : children_) {
+      if (std::find(cmd->names_.begin(), cmd->names_.end(), name) != cmd->names_.end()) {
+        return cmd;
+      }
+    }
+    return std::shared_ptr<Command>();
+  }
+
+  bool hasAction() {
+    return (bool)action_;
+  }
+
+  const Action* getAction() {
+    return action_.get();
+  }
+};
+
+class InfoAction : public Action
+{
+public:
+  std::string act(boost::program_options::variables_map vm) const {
+    return "Move along, nothing to see here";
+  }
+};
+
+class CommandManager
+{
+  std::unique_ptr<Command> root_;
+  std::shared_ptr<Context> context_;
+public:
+  CommandManager(std::shared_ptr<Context> context) : context_(context) {}
+  void init() {
+    root_.reset(new Command());
+    auto info = root_->addChild()
+      ->name("info")
+      ->help("Internal info and stats for the daemon");
+    info->addChild()
+      ->name("stats")
+      ->help("Internal stats")
+      ->action(new InfoAction());
+  }
+  std::string runCommand(std::vector<std::string> args) {
+    if (args.empty() || args[0] == "--help" || args[0] == "-h") {
+      return "Will print main help here";
+    }
+    auto node = root_->getChild(args[0]);
+    if (!node) {
+      context_->logger->log(Logger::ERROR, "Command %s not found", args[0].c_str());
+      return "Can't find " + args[0];
+    }
+    size_t argidx = 1;
+    for (;argidx<args.size(); ++argidx) {
+      auto child = node->getChild(args[argidx]);
+      if (child == nullptr) {
+        break;
+      }
+      node = child;
+    }
+    bool print_help = false;
+    print_help |= argidx == args.size() - 1 &&
+        (args[argidx] == "--help" || args[argidx] == "-h");
+    print_help |= !node->hasAction();
+    if (print_help) {
+      return "Will also print help here";
+    }
+    boost::program_options::variables_map vm;
+    auto opt = node->getAction()->options();
+    auto popt = node->getAction()->positionalOptions();
+    std::vector<std::string> rest(args.begin() + argidx, args.end());
+    auto parser = boost::program_options::command_line_parser(rest);
+    if (opt) {
+      parser.options(*opt);
+    }
+    if (popt) {
+      parser.positional(*popt);
+    }
+    if (!opt && !popt) {
+      boost::program_options::options_description opts("");
+      opts.add_options();
+      parser.options(opts);
+    }
+    auto r = parser.run();
+    boost::program_options::store(r, vm);
+    boost::program_options::notify(vm);
+    return node->getAction()->act(vm);
+  }
+};
+
 class WorkPool;
 
 class WorkPoolWorker : public ThreadBase
 {
 private:
-  WorkPool *workPool_;
+  WorkPool* workPool_;
   bool running_;
 public:
   WorkPoolWorker(std::string name, std::shared_ptr<Context> context, WorkPool* workPool)
@@ -104,13 +248,12 @@ void WorkPoolWorker::run() {
   while (running_) {
     auto work = workPool_->getWork();
     context_->logger->log(Logger::INFO, "Will process work of fd %d", work->socketFd);
-    std::stringstream out;
-    for(auto& item: work->args) {
-      out << item << " and then ";
-    }
-    auto outstr = out.str();
-    context_->logger->log(Logger::INFO, "Sending response: %s", outstr.c_str());
-    write(work->socketFd, outstr.c_str(), outstr.size());
+    std::string result = context_->commandManager->runCommand(work->args);
+    context_->logger->log(Logger::INFO, "Sending response: %s%s%s",
+        Consts::TerminalColors::PURPLE,
+        result.c_str(),
+        Consts::TerminalColors::DEFAULT);
+    write(work->socketFd, result.c_str(), result.size());
     close(work->socketFd);
   }
 }
@@ -224,6 +367,7 @@ private:
     }
     return 0;
   }
+  // TODO: make Server a thread and make main thread create context
   int initContext() {
     context_.reset(new Context());
     context_->logger.reset(new Logger());
@@ -231,6 +375,9 @@ private:
     context_->parser->start();
     context_->workPool.reset(new WorkPool(context_, 4));
     context_->workPool->start();
+    context_->commandManager.reset(new CommandManager(context_));
+    context_->commandManager->init();
+
     return 0;
   }
 public:

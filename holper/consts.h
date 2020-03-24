@@ -4,6 +4,7 @@ class Logger;
 class Parser;
 class Server;
 class WorkPool;
+class CommandManager;
 
 // TODO: these are not consts
 struct Context {
@@ -11,6 +12,7 @@ struct Context {
   std::unique_ptr<Parser> parser;
   std::unique_ptr<Server> server;
   std::unique_ptr<WorkPool> workPool;
+  std::unique_ptr<CommandManager> commandManager;
   Context()
   {
   }
