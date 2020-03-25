@@ -1,4 +1,14 @@
 #pragma once
+#include <chrono>
+#include <ctime>
+#define HOLPER_VERSION_MAJOR 0
+#define HOLPER_VERSION_MINOR 0
+#define HOLPER_VERSION_REVISION 1
+#define TO_STRING(s) TO_STRING2(s)
+#define TO_STRING2(s) #s
+#define HOLPER_VERSION "v" TO_STRING(HOLPER_VERSION_MAJOR) "." \
+  TO_STRING(HOLPER_VERSION_MINOR) "." \
+  TO_STRING(HOLPER_VERSION_REVISION)
 
 class Logger;
 class Parser;
@@ -13,8 +23,14 @@ struct Context {
   std::unique_ptr<Server> server;
   std::unique_ptr<WorkPool> workPool;
   std::unique_ptr<CommandManager> commandManager;
+  // TODO: time abstraction
+  struct tm startTime;
+  std::chrono::steady_clock::time_point startSteadyTime;
   Context()
   {
+    time_t t = time(NULL);
+    localtime_r(&t, &startTime);
+    startSteadyTime = std::chrono::steady_clock::now();
   }
 };
 

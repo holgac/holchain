@@ -30,7 +30,11 @@
 
 class Action
 {
+protected:
+  std::shared_ptr<Context> context_;
 public:
+  Action(std::shared_ptr<Context> context) : context_(context) {}
+  // TODO: these should return a map
   virtual std::string act(boost::program_options::variables_map vm) const = 0;
   virtual boost::optional<boost::program_options::options_description>
       options() const {
@@ -56,6 +60,7 @@ public:
 
   void validate() {
     // TODO: check for duplicate names
+    // TODO: check if no children and action
   }
 
   Command* name(std::string name, bool primary=false) {
@@ -101,8 +106,20 @@ public:
 class InfoAction : public Action
 {
 public:
+  InfoAction(std::shared_ptr<Context> context) : Action(context) {}
   std::string act(boost::program_options::variables_map vm) const {
-    return "Move along, nothing to see here";
+    std::stringstream stream;
+    auto now = std::chrono::steady_clock::now();
+    auto uptime_us = std::chrono::duration_cast<std::chrono::microseconds>(now - context_->startSteadyTime).count();
+    double uptime = 0.000001 * uptime_us;
+    char timebuf[64];
+    strftime(timebuf, 64, "%Y-%m-%d %H:%M:%S", &context_->startTime);
+    // TODO: tokenize when returning a map
+    stream << "Holper " << HOLPER_VERSION << "\n"
+      << "Up since " << timebuf << "\n"
+      << "Uptime: " << uptime << "s\n"
+    ;
+    return stream.str();
   }
 };
 
@@ -120,7 +137,7 @@ public:
     info->addChild()
       ->name("stats")
       ->help("Internal stats")
-      ->action(new InfoAction());
+      ->action(new InfoAction(context_));
   }
   std::string runCommand(std::vector<std::string> args) {
     if (args.empty() || args[0] == "--help" || args[0] == "-h") {
@@ -134,7 +151,7 @@ public:
     size_t argidx = 1;
     for (;argidx<args.size(); ++argidx) {
       auto child = node->getChild(args[argidx]);
-      if (child == nullptr) {
+      if (!child) {
         break;
       }
       node = child;
@@ -253,7 +270,13 @@ void WorkPoolWorker::run() {
         Consts::TerminalColors::PURPLE,
         result.c_str(),
         Consts::TerminalColors::DEFAULT);
-    write(work->socketFd, result.c_str(), result.size());
+    boost::property_tree::ptree tree;
+    tree.put("code", 0);
+    tree.put("response", result);
+    std::stringstream out;
+    boost::property_tree::write_json(out, tree, false);
+    auto outstr = out.str();
+    write(work->socketFd, outstr.c_str(), outstr.size());
     close(work->socketFd);
   }
 }
