@@ -61,6 +61,7 @@ public:
   void validate() {
     // TODO: check for duplicate names
     // TODO: check if no children and action
+    // TODO: check if !opt && popt
   }
 
   Command* name(std::string name, bool primary=false) {
@@ -101,6 +102,25 @@ public:
   const Action* getAction() {
     return action_.get();
   }
+
+  std::string helpMessage() {
+    std::stringstream ss;
+    if (action_) {
+      auto opts = action_->options();
+      if (opts) {
+        ss << *opts;
+      } else {
+        ss << help_;
+      }
+      return ss.str();
+    }
+    ss << primaryName_ << ":" << help_ <<  "\n";
+    ss << "Subcommands:\n";
+    for (auto& child : children_) {
+      ss << "\t" << child->primaryName_ << ": " << child->help_ << "\n";
+    }
+    return ss.str();
+  }
 };
 
 class InfoAction : public Action
@@ -123,6 +143,9 @@ public:
   }
 };
 
+// TODO: organise
+#include "pulse.h"
+
 class CommandManager
 {
   std::unique_ptr<Command> root_;
@@ -138,10 +161,21 @@ public:
       ->name("stats")
       ->help("Internal stats")
       ->action(new InfoAction(context_));
+    auto vol = root_->addChild()
+      ->name("vol")->name("volume")
+      ->help("Volume management");
+    vol->addChild()
+      ->name("incr")->name("increase")->name("i")
+      ->help("Increase volume by amount")
+      ->action(new VolumeChangeAction(context_));
+    vol->addChild()
+      ->name("mute")->name("m")
+      ->help("Toggle mute/unmute")
+      ->action(new VolumeMuteAction(context_));
   }
   std::string runCommand(std::vector<std::string> args) {
     if (args.empty() || args[0] == "--help" || args[0] == "-h") {
-      return "Will print main help here";
+      return root_->helpMessage();
     }
     auto node = root_->getChild(args[0]);
     if (!node) {
@@ -161,7 +195,7 @@ public:
         (args[argidx] == "--help" || args[argidx] == "-h");
     print_help |= !node->hasAction();
     if (print_help) {
-      return "Will also print help here";
+      return node->helpMessage();
     }
     boost::program_options::variables_map vm;
     auto opt = node->getAction()->options();
@@ -170,17 +204,20 @@ public:
     auto parser = boost::program_options::command_line_parser(rest);
     if (opt) {
       parser.options(*opt);
-    }
-    if (popt) {
-      parser.positional(*popt);
-    }
-    if (!opt && !popt) {
+    } else {
       boost::program_options::options_description opts("");
       opts.add_options();
       parser.options(opts);
     }
-    auto r = parser.run();
-    boost::program_options::store(r, vm);
+    if (popt) {
+      parser.positional(*popt);
+    }
+    try {
+      boost::program_options::store(parser.run(), vm);
+    } catch (boost::program_options::unknown_option& e) {
+      context_->logger->log(Logger::ERROR, "Invalid command: %s\n", e.what());
+      return node->helpMessage();
+    }
     boost::program_options::notify(vm);
     return node->getAction()->act(vm);
   }
@@ -437,6 +474,11 @@ public:
   }
 };
 
+
+void run_playground(int argc, char** argv) {
+  printf("running playground\n");
+}
+
 int run_server(int argc, char** argv) {
   char socketpathraw[512];
   sprintf(socketpathraw, "/run/user/%d/holperd.sock", getuid());
@@ -444,6 +486,7 @@ int run_server(int argc, char** argv) {
   boost::program_options::options_description desc("Options");
   desc.add_options()
     ("help", "help help")
+    ("test", "run playground")
     ("socket-path,S",
       boost::program_options::value<std::string>(&socket_path)->default_value(socket_path))
   ;
@@ -453,6 +496,14 @@ int run_server(int argc, char** argv) {
       vm);
   boost::program_options::notify(vm);
   std::cout << "socket-path: " << vm["socket-path"].as<std::string>() << std::endl;
+  if (vm.count("test")) {
+    run_playground(argc, argv);
+    fflush(stdin);
+    return 0;
+  } else if (vm.count("help")) {
+    std::cout << desc << std::endl;
+    return 0;
+  }
   Server server(vm["socket-path"].as<std::string>());
   // TODO
   if(server.init() != 0) {

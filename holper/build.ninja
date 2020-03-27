@@ -1,5 +1,5 @@
 cflags = -Wall -Werror -g
-ldflags = -lboost_program_options -pthread
+ldflags = -lboost_program_options -pthread -lpulse
 
 rule cc
   command = g++ $cflags -c -o $out -MD -MF $out.d $in
