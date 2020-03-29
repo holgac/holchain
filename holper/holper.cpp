@@ -48,7 +48,7 @@ public:
 
 class Command
 {
-  std::forward_list<std::string> names_;
+  std::list<std::string> names_;
   std::string primaryName_;
   std::string help_;
   std::unique_ptr<Action> action_;
@@ -112,9 +112,24 @@ public:
       } else {
         ss << help_;
       }
+      // TODO dup code
+      if (names_.size() > 1) {
+        ss << "\nAliases:";
+        for (auto& name : names_) {
+          ss << " " << name;
+        }
+        ss << "\n";
+      }
       return ss.str();
     }
     ss << primaryName_ << ":" << help_ <<  "\n";
+    if (names_.size() > 1) {
+      ss << "Aliases:";
+      for (auto& name : names_) {
+        ss << " " << name;
+      }
+      ss << "\n";
+    }
     ss << "Subcommands:\n";
     for (auto& child : children_) {
       ss << "\t" << child->primaryName_ << ": " << child->help_ << "\n";
@@ -145,6 +160,7 @@ public:
 
 // TODO: organise
 #include "pulse.h"
+#include "music.h"
 
 class CommandManager
 {
@@ -172,6 +188,29 @@ public:
       ->name("mute")->name("m")
       ->help("Toggle mute/unmute")
       ->action(new VolumeMuteAction(context_));
+    auto music = root_->addChild()
+      ->name("music")->name("mus")
+      ->help("Music control");
+    music->addChild()
+      ->name("play")
+      ->help("Play music")
+      ->action(new SpotifyAction(context_, "Play"));
+    music->addChild()
+      ->name("pause")
+      ->help("Pause music")
+      ->action(new SpotifyAction(context_, "Pause"));
+    music->addChild()
+      ->name("playpause")->name("p")
+      ->help("Toggle play/pause music")
+      ->action(new SpotifyAction(context_, "PlayPause"));
+    music->addChild()
+      ->name("next")->name("n")
+      ->help("Next song")
+      ->action(new SpotifyAction(context_, "Next"));
+    music->addChild()
+      ->name("prev")->name("previous")
+      ->help("Previous song")
+      ->action(new SpotifyAction(context_, "Previous"));
   }
   std::string runCommand(std::vector<std::string> args) {
     if (args.empty() || args[0] == "--help" || args[0] == "-h") {

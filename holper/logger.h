@@ -64,6 +64,9 @@ public:
   void addTarget(LogTarget* target) {
     targets_.push_back(std::unique_ptr<LogTarget>(target));
   }
+  // TODO: cpp file
+  // TODO: something like stringstream
+  // TODO: only log if verbosity allows
   void log(Level level, const char* format, ...) {
     const size_t BUFLEN = 8192;
     char buf[BUFLEN];

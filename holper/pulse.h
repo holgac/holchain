@@ -1,3 +1,4 @@
+#pragma once
 #include <pulse/pulseaudio.h>
 void pulse_callback(pa_context *context, void *userdata);
 
