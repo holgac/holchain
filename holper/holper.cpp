@@ -22,6 +22,7 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/optional.hpp>
 #include <stdexcept>
+#include <systemd/sd-daemon.h>
 #define SUCC_OR_RET(fn) SUCC_OR_RET_WITH_LOGGER(context_->logger, fn)
 #define SUCC_OR_RET_WITH_LOGGER(lg, fn) if(0 != (fn)) { (lg)->log(Logger::ERROR, "%s failed", #fn); return 1; }
 #include "consts.h"
@@ -416,8 +417,14 @@ private:
     }
     char logdir[1024];
     sprintf(logdir, "/run/user/%d/holperd.log", getuid());
-    int logfd = open(logdir, O_APPEND | O_CREAT | O_DIRECT | O_DSYNC, S_IRUSR | S_IWUSR);
-    if (!logfd) {
+    int logfd = open(logdir, O_APPEND | O_CREAT | O_SYNC | O_WRONLY,
+        S_IRUSR | S_IWUSR);
+    if (logfd < 0) {
+      char errbuf[1024];
+      strerror_r(errno, errbuf, 1024);
+      context_->logger->log(Logger::FATAL,
+          "Failed to open log file %s: %s",
+          logdir, errbuf);
       return 1;
     }
     context_->logger->addTarget(new FDLogTarget(logfd, true));
@@ -476,7 +483,6 @@ private:
     context_->workPool->start();
     context_->commandManager.reset(new CommandManager(context_));
     context_->commandManager->init();
-
     return 0;
   }
 public:
@@ -492,6 +498,7 @@ public:
     return 0;
   }
   void start() {
+    sd_notify(0, "READY=1");
     if(0 != listen(socket_, 10)) {
       context_->logger->log(Logger::FATAL, "Listen failed");
     }
