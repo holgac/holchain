@@ -194,7 +194,7 @@ public:
     music->addChild()
       ->name("play")
       ->help("Play music")
-      ->action(new SpotifyAction(context_, "Play"));
+      ->action(new SpotifyAction(context_, "Play", true));
     music->addChild()
       ->name("pause")
       ->help("Pause music")
@@ -202,7 +202,7 @@ public:
     music->addChild()
       ->name("playpause")->name("p")
       ->help("Toggle play/pause music")
-      ->action(new SpotifyAction(context_, "PlayPause"));
+      ->action(new SpotifyAction(context_, "PlayPause", true));
     music->addChild()
       ->name("next")->name("n")
       ->help("Next song")

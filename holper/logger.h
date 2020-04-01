@@ -67,6 +67,7 @@ public:
   // TODO: cpp file
   // TODO: something like stringstream
   // TODO: only log if verbosity allows
+  // TODO: error() info() etc. methods and macros w/file+line
   void log(Level level, const char* format, ...) {
     const size_t BUFLEN = 8192;
     char buf[BUFLEN];
