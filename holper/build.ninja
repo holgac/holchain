@@ -9,5 +9,11 @@ rule ld
   command = g++ $cflags $ldflags -o $out $in
 
 build holper.o: cc holper.cpp
-build holper: ld holper.o
+build info.o: cc info.cpp
+build consts.o: cc consts.cpp
+build pulse.o: cc pulse.cpp
+build music.o: cc music.cpp
+build command.o: cc command.cpp
+build display.o: cc display.cpp
+build holper: ld holper.o info.o consts.o pulse.o music.o command.o display.o
 default holper

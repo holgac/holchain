@@ -4,6 +4,7 @@
 #define EXCEPTION(...) HException(__FILE__, TO_STRING(__LINE__), __VA_ARGS__)
 #define THROW(...) throw EXCEPTION(__VA_ARGS__)
 #define CTHROW(...) throw CEXCEPTION(__VA_ARGS__)
+#include "consts.h"
 
 // TODO: more exception types
 // TODO: not the right place

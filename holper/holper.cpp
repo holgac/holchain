@@ -10,7 +10,6 @@
 #include <cstdlib>
 #include <vector>
 #include <list>
-#include <forward_list>
 #include <queue>
 #include <memory>
 #include <ctime>
@@ -28,138 +27,8 @@
 #include "consts.h"
 #include "logger.h"
 #include "thread.h"
-
-class Action
-{
-protected:
-  std::shared_ptr<Context> context_;
-public:
-  Action(std::shared_ptr<Context> context) : context_(context) {}
-  // TODO: these should return a map
-  virtual std::string act(boost::program_options::variables_map vm) const = 0;
-  virtual boost::optional<boost::program_options::options_description>
-      options() const {
-    return boost::none;
-  }
-  virtual boost::optional<boost::program_options::positional_options_description>
-      positionalOptions() const {
-    return boost::none;
-  }
-};
-
-class Command
-{
-  std::list<std::string> names_;
-  std::string primaryName_;
-  std::string help_;
-  std::unique_ptr<Action> action_;
-  std::list<std::shared_ptr<Command>> children_;
-  boost::program_options::options_description options_;
-  boost::program_options::positional_options_description positionalOptions_;
-public:
-  Command() {}
-
-  void validate() {
-    // TODO: check for duplicate names
-    // TODO: check if no children and action
-    // TODO: check if !opt && popt
-  }
-
-  Command* name(std::string name, bool primary=false) {
-    names_.push_front(name);
-    if (primary || primaryName_.empty()) {
-        primaryName_ = name;
-    }
-    return this;
-  }
-  Command* help(std::string help) {
-    help_ = help;
-    return this;
-  }
-  Command* action(Action* action) {
-    action_.reset(action);
-    return this;
-  }
-
-  std::shared_ptr<Command> addChild() {
-    auto c = std::make_shared<Command>(Command());
-    children_.push_back(c);
-    return c;
-  }
-
-  std::shared_ptr<Command> getChild(std::string name) {
-    for (auto& cmd : children_) {
-      if (std::find(cmd->names_.begin(), cmd->names_.end(), name) != cmd->names_.end()) {
-        return cmd;
-      }
-    }
-    return std::shared_ptr<Command>();
-  }
-
-  bool hasAction() {
-    return (bool)action_;
-  }
-
-  const Action* getAction() {
-    return action_.get();
-  }
-
-  std::string helpMessage() {
-    std::stringstream ss;
-    if (action_) {
-      auto opts = action_->options();
-      if (opts) {
-        ss << *opts;
-      } else {
-        ss << help_;
-      }
-      // TODO dup code
-      if (names_.size() > 1) {
-        ss << "\nAliases:";
-        for (auto& name : names_) {
-          ss << " " << name;
-        }
-        ss << "\n";
-      }
-      return ss.str();
-    }
-    ss << primaryName_ << ":" << help_ <<  "\n";
-    if (names_.size() > 1) {
-      ss << "Aliases:";
-      for (auto& name : names_) {
-        ss << " " << name;
-      }
-      ss << "\n";
-    }
-    ss << "Subcommands:\n";
-    for (auto& child : children_) {
-      ss << "\t" << child->primaryName_ << ": " << child->help_ << "\n";
-    }
-    return ss.str();
-  }
-};
-
-class InfoAction : public Action
-{
-public:
-  InfoAction(std::shared_ptr<Context> context) : Action(context) {}
-  std::string act(boost::program_options::variables_map vm) const {
-    std::stringstream stream;
-    auto now = std::chrono::steady_clock::now();
-    auto uptime_us = std::chrono::duration_cast<std::chrono::microseconds>(now - context_->startSteadyTime).count();
-    double uptime = 0.000001 * uptime_us;
-    char timebuf[64];
-    strftime(timebuf, 64, "%Y-%m-%d %H:%M:%S", &context_->startTime);
-    // TODO: tokenize when returning a map
-    stream << "Holper " << HOLPER_VERSION << "\n"
-      << "Up since " << timebuf << "\n"
-      << "Uptime: " << uptime << "s\n"
-    ;
-    return stream.str();
-  }
-};
-
-// TODO: organise
+#include "command.h"
+#include "info.h"
 #include "pulse.h"
 #include "music.h"
 #include "display.h"
@@ -173,54 +42,10 @@ public:
   void init() {
     root_.reset(new Command());
     // TODO: implement "modules" that add their own stuff to optimize compilation
-    auto info = root_->addChild()
-      ->name("info")
-      ->help("Internal info and stats for the daemon");
-    info->addChild()
-      ->name("stats")
-      ->help("Internal stats")
-      ->action(new InfoAction(context_));
-    auto vol = root_->addChild()
-      ->name("vol")->name("volume")
-      ->help("Volume management");
-    vol->addChild()
-      ->name("incr")->name("increase")->name("i")
-      ->help("Increase volume by amount")
-      ->action(new VolumeChangeAction(context_));
-    vol->addChild()
-      ->name("mute")->name("m")
-      ->help("Toggle mute/unmute")
-      ->action(new VolumeMuteAction(context_));
-    auto music = root_->addChild()
-      ->name("music")->name("mus")
-      ->help("Music control");
-    music->addChild()
-      ->name("play")
-      ->help("Play music")
-      ->action(new SpotifyAction(context_, "Play", true));
-    music->addChild()
-      ->name("pause")
-      ->help("Pause music")
-      ->action(new SpotifyAction(context_, "Pause"));
-    music->addChild()
-      ->name("playpause")->name("p")
-      ->help("Toggle play/pause music")
-      ->action(new SpotifyAction(context_, "PlayPause", true));
-    music->addChild()
-      ->name("next")->name("n")
-      ->help("Next song")
-      ->action(new SpotifyAction(context_, "Next"));
-    music->addChild()
-      ->name("prev")->name("previous")
-      ->help("Previous song")
-      ->action(new SpotifyAction(context_, "Previous"));
-    auto display = root_->addChild()
-      ->name("display")
-      ->help("Display control");
-    display->addChild()
-      ->name("brightness")->name("bri")
-      ->help("Change brightness")
-      ->action(new BrightnessChangeAction(context_));
+    InfoCommandGroup::registerCommands(context_, root_->addChild());
+    PulseCommandGroup::registerCommands(context_, root_->addChild());
+    MusicCommandGroup::registerCommands(context_, root_->addChild());
+    DisplayCommandGroup::registerCommands(context_, root_->addChild());
   }
   std::string runCommand(std::vector<std::string> args) {
     if (args.empty() || args[0] == "--help" || args[0] == "-h") {
