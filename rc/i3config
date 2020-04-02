@@ -220,9 +220,9 @@ bindsym XF86AudioNext exec holper music next
 bindsym XF86AudioPrev exec holper music prev
 bindsym --release Print exec i3helper screenshot
 # increase screen brightness
-bindsym XF86MonBrightnessUp exec light -A 5
+bindsym XF86MonBrightnessUp exec holper display brightness 5
 # decrease screen brightness
-bindsym XF86MonBrightnessDown exec light -U 5
+bindsym XF86MonBrightnessDown exec holper display brightness -- -5
 bindsym $mod+Shift+m exec i3-input -l 1 -F 'mark %s' -P 'mark given window'
 bindsym $mod+m exec i3-input -l 1 -F '[con_mark="%s"] focus' -P 'go to mark'
 bindsym $mod+Mod1+c exec i3-input -l 2 -F 'exec i3helper copytoregister "%s"' -P 'copy to register'

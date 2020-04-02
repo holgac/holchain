@@ -162,6 +162,7 @@ public:
 // TODO: organise
 #include "pulse.h"
 #include "music.h"
+#include "display.h"
 
 class CommandManager
 {
@@ -171,6 +172,7 @@ public:
   CommandManager(std::shared_ptr<Context> context) : context_(context) {}
   void init() {
     root_.reset(new Command());
+    // TODO: implement "modules" that add their own stuff to optimize compilation
     auto info = root_->addChild()
       ->name("info")
       ->help("Internal info and stats for the daemon");
@@ -212,6 +214,13 @@ public:
       ->name("prev")->name("previous")
       ->help("Previous song")
       ->action(new SpotifyAction(context_, "Previous"));
+    auto display = root_->addChild()
+      ->name("display")
+      ->help("Display control");
+    display->addChild()
+      ->name("brightness")->name("bri")
+      ->help("Change brightness")
+      ->action(new BrightnessChangeAction(context_));
   }
   std::string runCommand(std::vector<std::string> args) {
     if (args.empty() || args[0] == "--help" || args[0] == "-h") {
