@@ -10,7 +10,13 @@ function genmsg() {
   done | jq --raw-input --slurp 'split("\n") | .[0:-1]'
 }
 
-resp=$(genmsg "$@" | nc -U "/run/user/$UID/holperd.sock")
+socket="/run/user/$UID/holperd.sock"
+if [ "$1" = --dev ] || [ "$ISDEV" = 1 ]; then
+  socket="/run/user/$UID/holperdev.sock"
+  shift
+fi
+
+resp=$(genmsg "$@" | nc -U "$socket")
 printf %s "$resp" | jq -rc .response | sed s/\\n/\n/
 code="$(printf %s "$resp" | jq -rc .code)"
 exit "$code"

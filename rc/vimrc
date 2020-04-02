@@ -245,6 +245,7 @@ set rtp+=~/.vim/bundle/Vundle.vim
 call vundle#begin()
 Plugin 'VundleVim/Vundle.vim'
 Plugin 'Chiel92/vim-autoformat'
+Plugin 'preservim/nerdtree'
 call vundle#end()
 filetype plugin indent on
 highlight potionComment ctermbg=red ctermfg=blue

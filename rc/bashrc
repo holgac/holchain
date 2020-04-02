@@ -88,7 +88,7 @@ alias rgrep='grep -r'
 alias grep='grep --color=auto'
 alias less='less -R'
 alias curl='curl -LSs'
-alias tailholper='tail -f "$(holper info log_location)"'
+alias tailholper='tail -f "/run/user/$(id -u)/holperd.log"'
 
 #bash meta stuff
 # like `clear`, but cleaner if you scroll up

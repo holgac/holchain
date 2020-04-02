@@ -245,6 +245,12 @@ if [ "$(uname)" = 'Linux' ] && [ -z "$server_mode" ]; then
   write_to "$xorg_path/90-touchpad.conf" "$xorg_touchpad" root
   write_to "$xorg_path/90-keyboard.conf" "$xorg_keyboard" root
 
+  echo 'udev setup'
+  udev_backlight='ACTION=="add", SUBSYSTEM=="backlight", KERNEL=="acpi_video0", RUN+="/bin/chgrp video /sys/class/backlight/%k/brightness"
+ACTION=="add", SUBSYSTEM=="backlight", KERNEL=="acpi_video0", RUN+="/bin/chmod g+w /sys/class/backlight/%k/brightness"'
+  udev_path=/etc/udev/rules.d
+  write_to "$udev_path/backlight.rules" "$udev_backlight" root
+
   echo 'Installing software'
   # assuming fedora
   dnf_install i3 i3status dmenu i3lock xbacklight feh conky \

@@ -520,7 +520,6 @@ public:
   }
 };
 
-
 void run_playground(int argc, char** argv) {
   printf("running playground\n");
 }
@@ -532,6 +531,8 @@ int run_server(int argc, char** argv) {
   boost::program_options::options_description desc("Options");
   desc.add_options()
     ("help", "help help")
+    // TODO: don't log in dev mode (move context creation out of Server)
+    ("dev", "dev mode (you can also set ISDEV env")
     ("test", "run playground")
     ("socket-path,S",
       boost::program_options::value<std::string>(&socket_path)->default_value(socket_path))
@@ -541,7 +542,13 @@ int run_server(int argc, char** argv) {
       boost::program_options::command_line_parser(argc, argv).options(desc).run(),
       vm);
   boost::program_options::notify(vm);
-  std::cout << "socket-path: " << vm["socket-path"].as<std::string>() << std::endl;
+  std::cout << "socket-path: " << socket_path << std::endl;
+  if (vm.count("dev") || getenv("ISDEV")) {
+    std::cout << "Starting in dev mode!" << std::endl;
+    char socketpathraw[512];
+    sprintf(socketpathraw, "/run/user/%d/holperdev.sock", getuid());
+    socket_path = socketpathraw;
+  }
   if (vm.count("test")) {
     run_playground(argc, argv);
     fflush(stdin);
@@ -550,7 +557,7 @@ int run_server(int argc, char** argv) {
     std::cout << desc << std::endl;
     return 0;
   }
-  Server server(vm["socket-path"].as<std::string>());
+  Server server(socket_path);
   // TODO
   if(server.init() != 0) {
     return 1;

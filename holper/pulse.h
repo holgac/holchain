@@ -9,10 +9,6 @@ enum class PulseState
   ERROR,
 };
 
-class PulseObject
-{
-};
-
 class PulseAudio
 {
 private:
