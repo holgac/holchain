@@ -1,5 +1,6 @@
-#include <chrono>
 #include "info.h"
+#include "holper.h"
+#include <chrono>
 #include "command.h"
 #include "consts.h"
 #include "logger.h"
@@ -8,7 +9,7 @@ class StatsAction : public Action
 {
 public:
   StatsAction(std::shared_ptr<Context> context) : Action(context) {}
-  std::string act(boost::program_options::variables_map vm) const {
+  std::string act(boost::program_options::variables_map UNUSED(vm)) const {
     std::stringstream stream;
     auto now = std::chrono::steady_clock::now();
     auto uptime_us = std::chrono::duration_cast<std::chrono::microseconds>(now - context_->startSteadyTime).count();

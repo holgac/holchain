@@ -85,6 +85,7 @@ public:
     return "success";
   }
 };
+
 void DisplayCommandGroup::registerCommands(std::shared_ptr<Context> context,
       std::shared_ptr<Command> command)
 {
@@ -96,4 +97,3 @@ void DisplayCommandGroup::registerCommands(std::shared_ptr<Context> context,
     ->help("Change brightness")
     ->action(new BrightnessChangeAction(context));
 }
-

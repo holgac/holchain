@@ -12,6 +12,7 @@
 #include <list>
 #include <queue>
 #include <memory>
+#include <functional>
 #include <ctime>
 #include <fcntl.h>
 #include <pthread.h>
@@ -24,6 +25,7 @@
 #include <systemd/sd-daemon.h>
 #define SUCC_OR_RET(fn) SUCC_OR_RET_WITH_LOGGER(context_->logger, fn)
 #define SUCC_OR_RET_WITH_LOGGER(lg, fn) if(0 != (fn)) { (lg)->log(Logger::ERROR, "%s failed", #fn); return 1; }
+#include "holper.h"
 #include "consts.h"
 #include "logger.h"
 #include "thread.h"
@@ -32,6 +34,7 @@
 #include "pulse.h"
 #include "music.h"
 #include "display.h"
+#include "sdbus.h"
 
 class CommandManager
 {
@@ -41,22 +44,47 @@ public:
   CommandManager(std::shared_ptr<Context> context) : context_(context) {}
   void init() {
     root_.reset(new Command());
-    // TODO: implement "modules" that add their own stuff to optimize compilation
     InfoCommandGroup::registerCommands(context_, root_->addChild());
     PulseCommandGroup::registerCommands(context_, root_->addChild());
     MusicCommandGroup::registerCommands(context_, root_->addChild());
     DisplayCommandGroup::registerCommands(context_, root_->addChild());
   }
   std::string runCommand(std::vector<std::string> args) {
+    boost::program_options::positional_options_description root_popt;
+    root_popt.add("command", -1);
+    boost::program_options::options_description root_opt;
+    root_opt.add_options()
+      ("schedule", boost::program_options::value<int>(),
+        "Schedule the command instead of running immediately")
+      ("command", boost::program_options::value<std::vector<std::string>>(), "The actual command")
+    ;
     if (args.empty() || args[0] == "--help" || args[0] == "-h") {
-      return root_->helpMessage();
+      std::stringstream ss;
+      ss << root_->helpMessage() << std::endl << root_opt;
+      return ss.str();
     }
+    boost::program_options::variables_map root_vm;
+    auto root_parser = boost::program_options::command_line_parser(args);
+    root_parser.options(root_opt);
+    root_parser.positional(root_popt);
+    try {
+      boost::program_options::store(root_parser.run(), root_vm);
+    } catch (boost::program_options::unknown_option& e) {
+      context_->logger->log(Logger::ERROR, "Invalid command: %s\n", e.what());
+      // TODO: dup code
+      std::stringstream ss;
+      ss << root_->helpMessage() << std::endl << root_opt;
+      return ss.str();
+    }
+    boost::program_options::notify(root_vm);
+    args = root_vm["command"].as<std::vector<std::string>>();
     auto node = root_->getChild(args[0]);
     if (!node) {
       context_->logger->log(Logger::ERROR, "Command %s not found", args[0].c_str());
       return "Can't find " + args[0];
     }
     size_t argidx = 1;
+
     for (;argidx<args.size(); ++argidx) {
       auto child = node->getChild(args[argidx]);
       if (!child) {
@@ -65,6 +93,7 @@ public:
       node = child;
     }
     bool print_help = false;
+    // TODO: add --help to action's options instead of hard coding like this
     print_help |= argidx == args.size() - 1 &&
         (args[argidx] == "--help" || args[argidx] == "-h");
     print_help |= !node->hasAction();
@@ -93,7 +122,10 @@ public:
       return node->helpMessage();
     }
     boost::program_options::notify(vm);
-    return node->getAction()->act(vm);
+    if(!root_vm.count("schedule")) {
+      return node->getAction()->act(vm);
+    }
+    return "schedule not yet implemented";
   }
 };
 
@@ -285,7 +317,7 @@ private:
   }
   int createSocket() {
     socket_ = socket(AF_UNIX, SOCK_STREAM, 0);
-    if (socket < 0) {
+    if (socket_ < 0) {
       char errbuf[1024];
       strerror_r(errno, errbuf, 1024);
       context_->logger->log(Logger::FATAL,
@@ -354,7 +386,7 @@ public:
   }
 };
 
-void run_playground(int argc, char** argv) {
+void run_playground(int UNUSED(argc), char** UNUSED(argv)) {
   printf("running playground\n");
 }
 

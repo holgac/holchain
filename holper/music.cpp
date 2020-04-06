@@ -1,4 +1,5 @@
 #include "music.h"
+#include "holper.h"
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/types.h>
@@ -19,7 +20,7 @@ private:
 public:
   SpotifyAction(std::shared_ptr<Context> context, std::string method, bool spawn = false)
       : Action(context), method_(method), spawnOnFailure_(spawn) {}
-  std::string act(boost::program_options::variables_map vm) const
+  std::string act(boost::program_options::variables_map UNUSED(vm)) const
   {
     SDBus bus(kSpotifyService, kSpotifyObject, kSpotifyIFace);
     try {

@@ -1,5 +1,6 @@
-#include <pulse/pulseaudio.h>
 #include "pulse.h"
+#include "holper.h"
+#include <pulse/pulseaudio.h>
 #include "command.h"
 #include "consts.h"
 #include "logger.h"
@@ -21,10 +22,10 @@ private:
   std::string defaultSinkName_;
   const pa_sink_info* defaultSink_;
   std::shared_ptr<Context> context_;
-  static void pulseSuccessCallback(pa_context *c, int success, void* p) {
-    printf("Success: %d\n", success);
-  }
-  static void pulseServerInfoCallback(pa_context *c, const pa_server_info *i, void* p) {
+  static void pulseSuccessCallback(pa_context* UNUSED(c), int UNUSED(success),
+      void* UNUSED(p)) {}
+  static void pulseServerInfoCallback(pa_context* UNUSED(c),
+      const pa_server_info *i, void* p) {
     reinterpret_cast<PulseAudio*>(p)->defaultSinkName_ = i->default_sink_name;
   }
 
@@ -60,17 +61,18 @@ private:
         break;
     }
   }
-  static void pulseSinkInfoCallback(pa_context* c, const pa_sink_info* info, int eol, void* userdata) {
-      if (eol) {
-        return;
-      }
-      PulseAudio* pa = reinterpret_cast<PulseAudio*>(userdata);
-      if(pa->defaultSinkName_ != info->name) {
-        pa->logError("Received an irrelevant sink");
-        // TODO: error handling
-        return;
-      }
-      pa->defaultSink_ = info;
+  static void pulseSinkInfoCallback(pa_context* UNUSED(c),
+      const pa_sink_info* info, int eol, void* userdata) {
+    if (eol) {
+      return;
+    }
+    PulseAudio* pa = reinterpret_cast<PulseAudio*>(userdata);
+    if(pa->defaultSinkName_ != info->name) {
+      pa->logError("Received an irrelevant sink");
+      // TODO: error handling
+      return;
+    }
+    pa->defaultSink_ = info;
   }
   void logError(const char* msg) {
       context_->logger->log(Logger::ERROR, "%s: %s",
@@ -193,7 +195,7 @@ class VolumeMuteAction : public Action
 {
 public:
   VolumeMuteAction(std::shared_ptr<Context> context) : Action(context) {}
-  std::string act(boost::program_options::variables_map vm) const
+  std::string act(boost::program_options::variables_map UNUSED(vm)) const
   {
     PulseAudio pa(context_);;
     pa.init();

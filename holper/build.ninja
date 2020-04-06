@@ -1,4 +1,4 @@
-cflags = -Wall -Werror -g
+cflags = -Wall -Werror -g -std=c++2a -Wextra
 ldflags = -lboost_program_options -pthread -lpulse -lsystemd -lX11 -lXext
 
 rule cc
