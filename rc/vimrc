@@ -250,6 +250,8 @@ Plugin 'kien/ctrlp.vim'
 call vundle#end()
 nnoremap <leader>w :CtrlP<CR>
 nnoremap <leader>b :CtrlPBuffer<CR>
+let g:ctrlp_map = '<leader>w'
+let g:ctrlp_cmd = 'CtrlP'
 let g:ctrlp_custom_ignore = {
   \ 'dir':  '\v[\/]\.(git|hg|svn)$',
   \ 'file': '\v\.(o|so|o.d)$',
