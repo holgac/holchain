@@ -2,6 +2,9 @@
 #include <pthread.h>
 #include <semaphore.h>
 #include <queue>
+#include <string>
+#include <memory>
+class Context;
 
 class LockMutex {
 private:
@@ -29,13 +32,7 @@ public:
     pthread_t tmp;
     pthread_create(&tmp, NULL, startThread, (void*)this);
   }
-  static void* startThread(void* thread_ptr) {
-    ThreadBase* thread = (ThreadBase*)thread_ptr;
-    pthread_setname_np(pthread_self(), thread->name_.c_str());
-    thread->context_->logger->log(Logger::INFO, "Thread starting");
-    thread->run();
-    return NULL;
-  }
+  static void* startThread(void* thread_ptr);
 };
 
 template <typename T>

@@ -15,5 +15,9 @@ build pulse.o: cc pulse.cpp
 build music.o: cc music.cpp
 build command.o: cc command.cpp
 build display.o: cc display.cpp
-build holper: ld holper.o info.o consts.o pulse.o music.o command.o display.o
+build workpool.o: cc workpool.cpp
+build commandmanager.o: cc commandmanager.cpp
+build thread.o: cc thread.cpp
+build holper: ld holper.o info.o consts.o pulse.o music.o command.o display.o $
+    workpool.o commandmanager.o thread.o
 default holper
