@@ -5,6 +5,7 @@
 #include <list>
 #include <string>
 #include <memory>
+#include "request.h"
 
 class WorkPool;
 
@@ -21,10 +22,9 @@ public:
 
 struct WorkPoolArgs
 {
-  int socketFd;
-  std::vector<std::string> args;
-  WorkPoolArgs(int fd, std::vector<std::string> arguments)
-      : socketFd(fd), args(arguments) {}
+  std::unique_ptr<Request> request;
+  explicit WorkPoolArgs(std::unique_ptr<Request>&& req)
+      : request(std::move(req)) {}
 };
 
 class WorkPool : public Thread<WorkPoolArgs>
@@ -33,12 +33,9 @@ public:
   class Work
   {
   public:
-    // TODO: id
-    int socketFd;
-    std::vector<std::string> args;
-    Work(){}
-    Work(int fd, std::vector<std::string> arguments)
-        : socketFd(fd), args(arguments) {}
+    std::unique_ptr<Request> request;
+    explicit Work(std::unique_ptr<Request>&& req)
+        : request(std::move(req)) {}
   };
 private:
   pthread_mutex_t workMutex_;
@@ -51,6 +48,6 @@ public:
       : Thread("WorkPool", context), poolSize_(poolSize) {}
   void handleMessage(std::unique_ptr<WorkPoolArgs> msg);
   // Only called from worker threads
-  std::unique_ptr<Work> getWork();
+  std::unique_ptr<Request> getWork();
   void init();
 };

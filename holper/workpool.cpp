@@ -5,38 +5,40 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
+// TODO: move to request.cpp
+int Request::idCounter_;
+
 void WorkPoolWorker::run() {
   running_ = true;
   while (running_) {
-    auto work = workPool_->getWork();
-    context_->logger->log(Logger::INFO, "Will process work of fd %d", work->socketFd);
-    std::string result = context_->commandManager->runCommand(work->args);
+    auto request = workPool_->getWork();
+    context_->logger->log(Logger::INFO, "Will process request %d", request->id());
+    // TODO: we should have Action/Command etc. here. CommandManager stuff should
+    // run before here, probably in parser
+    std::string result = request->command()->getAction()->actOn(request.get());
     context_->logger->log(Logger::INFO, "Sending response: %s%s%s",
         Consts::TerminalColors::PURPLE,
         result.c_str(),
         Consts::TerminalColors::DEFAULT);
-    boost::property_tree::ptree tree;
-    tree.put("code", 0);
-    tree.put("response", result);
-    std::stringstream out;
-    boost::property_tree::write_json(out, tree, false);
-    auto outstr = out.str();
-    write(work->socketFd, outstr.c_str(), outstr.size());
-    close(work->socketFd);
+    request->response()
+      .set("response", result)
+      .set("code", 0);
+    request->respond();
   }
 }
 
 void WorkPool::handleMessage(std::unique_ptr<WorkPoolArgs> msg) {
-  std::unique_ptr<Work> work(new Work(msg->socketFd, msg->args));
+  context_->logger->log(Logger::INFO, "Received work for request %d",
+      msg->request->id());
+  std::unique_ptr<Work> work(new Work(std::move(msg->request)));
   {
     LockMutex lock(&workMutex_);
     works_.push(std::move(work));
   }
-  context_->logger->log(Logger::INFO, "Received work of fd %d", msg->socketFd);
   sem_post(&workSemaphore_);
 }
 
-std::unique_ptr<WorkPool::Work> WorkPool::getWork() {
+std::unique_ptr<Request> WorkPool::getWork() {
   sem_wait(&workSemaphore_);
   std::unique_ptr<Work> work;
   {
@@ -44,7 +46,7 @@ std::unique_ptr<WorkPool::Work> WorkPool::getWork() {
     work = std::move(works_.front());
     works_.pop();
   }
-  return work;
+  return std::move(work->request);
 }
 void WorkPool::init() {
   for (size_t i=0; i<poolSize_; ++i) {

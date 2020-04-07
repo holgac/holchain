@@ -33,52 +33,8 @@
 #include "sdbus.h"
 #include "workpool.h"
 #include "commandmanager.h"
-
-struct ParserArgs {
-  int fd;
-  ParserArgs(int fileDescriptor) : fd(fileDescriptor) {}
-};
-
-class Parser : public Thread<ParserArgs>
-{
-public:
-  Parser(std::shared_ptr<Context> context) : Thread("Parser", context) {}
-  void handleMessage(std::unique_ptr<ParserArgs> msg) {
-    int fd = msg->fd;
-    std::stringstream request;
-    while (true) {
-      char buf[1024];
-      int res = recv(fd, buf, 1024, 0);
-      request << std::string(buf, res);
-      if (res < 0) {
-        char errbuf[1024];
-        strerror_r(errno, errbuf, 1024);
-        context_->logger->log(Logger::ERROR,
-            "recv failed: %s", errbuf);
-        close(fd);
-        return;
-      }
-      if (res == 0) {
-        break;
-      }
-    }
-    context_->logger->log(Logger::INFO, "fd %d received %s (%d)", fd, request.str().c_str(), (int)request.tellp());
-    boost::property_tree::ptree tree;
-    try {
-      boost::property_tree::read_json(request, tree);
-    } catch (boost::property_tree::json_parser::json_parser_error& _) {
-      context_->logger->log(Logger::ERROR, "Json parsing failed");
-      close(fd);
-      return;
-    }
-    std::vector<std::string> args;
-    for (auto& val: tree.get_child("")) {
-      args.push_back(val.second.get_value<std::string>());
-    }
-    context_->workPool->sendMessage(new WorkPoolArgs(fd, args));
-    context_->logger->log(Logger::INFO, "Sent to work pool");
-  }
-};
+#include "parser.h"
+#include "request.h"
 
 class Server
 {
@@ -187,8 +143,9 @@ public:
             "Accept failed: %s", errbuf);
         continue;
       }
-      context_->logger->log(Logger::INFO, "Got a new connection");
-      context_->parser->sendMessage(new ParserArgs(fd));
+      auto req = std::make_unique<Request>(context_, fd);
+      context_->logger->log(Logger::INFO, "Received request %d", req->id());
+      context_->parser->sendMessage(new ParserArgs(std::move(req)));
     }
   }
   void setRunning(bool running) {
@@ -198,6 +155,9 @@ public:
 
 void run_playground(int UNUSED(argc), char** UNUSED(argv)) {
   printf("running playground\n");
+  std::stringstream ss;
+  ss << true << false;
+  printf("%s\n", ss.str().c_str());
 }
 
 int run_server(int argc, char** argv) {

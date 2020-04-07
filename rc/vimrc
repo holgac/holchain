@@ -257,6 +257,10 @@ let g:ctrlp_custom_ignore = {
   \ 'file': '\v\.(o|so|o.d)$',
   \ 'link': 'some_bad_symbolic_links',
   \ }
+let g:ctrlp_prompt_mappings = {
+    \ 'AcceptSelection("r")': ['<cr>'],
+    \ }
+set wildignore=*.o,*.o.d
 filetype plugin indent on
 highlight potionComment ctermbg=red ctermfg=blue
 syntax match potionComment "\v +$"

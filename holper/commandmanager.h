@@ -8,7 +8,10 @@ class CommandManager
 public:
   CommandManager(std::shared_ptr<Context> context) : context_(context) {}
   void init();
-  std::string runCommand(std::vector<std::string> args);
+  void resolveRequest(Request* req);
+  const Command* rootCommand() {
+    return root_.get();
+  }
 };
 
 

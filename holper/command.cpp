@@ -1,4 +1,41 @@
 #include "command.h"
+#include "holper.h"
+#include "request.h"
+#include <boost/program_options.hpp>
+
+boost::program_options::variables_map Action::parse(const Request* req) const {
+  auto opt = options();
+  auto popt = positionalOptions();
+  auto parser = boost::program_options::command_line_parser(req->args());
+  if (opt) {
+    parser.options(*opt);
+    if (popt) {
+      parser.positional(*popt);
+    }
+  } else {
+    boost::program_options::options_description opts("");
+    opts.add_options();
+    parser.options(opts);
+  }
+  boost::program_options::variables_map vm;
+  boost::program_options::store(parser.run(), vm);
+  boost::program_options::notify(vm);
+  return vm;
+}
+bool Action::canActOn(const Request* req) const {
+  try {
+    parse(req);
+    return true;
+  } catch (boost::program_options::unknown_option& e) {
+    return false;
+  }
+}
+
+std::string Action::actOn(Request* req) const {
+  auto vm = parse(req);
+  return act(vm);
+}
+
 Command::Command() {}
 
 void Command::validate() {
@@ -42,11 +79,11 @@ bool Command::hasAction() {
   return (bool)action_;
 }
 
-const Action* Command::getAction() {
+const Action* Command::getAction() const {
   return action_.get();
 }
 
-std::string Command::helpMessage() {
+std::string Command::helpMessage() const {
   std::stringstream ss;
   if (action_) {
     auto opts = action_->options();

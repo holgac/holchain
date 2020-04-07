@@ -4,7 +4,7 @@
 #include <vector>
 #include <sstream>
 
-template <clock_t Clock, class Derived>
+template <clock_t Clock>
 class TimePointBase {
 protected:
   struct timespec time_;
@@ -21,10 +21,10 @@ public:
   struct timespec timespec() {
     return time_;
   }
-  double operator-(const Derived& rhs) const {
+  double operator-(const TimePointBase<Clock>& rhs) const {
     return value() - rhs.value();
   }
-  Derived operator+(double rhs) const {
+  TimePointBase<Clock> operator+(double rhs) const {
     struct timespec ts;
     ts.tv_sec = time_.tv_sec + (long)rhs;
     ts.tv_nsec = time_.tv_nsec + (rhs - (long)rhs) * 1000000000.0;
@@ -35,53 +35,19 @@ public:
       ts.tv_nsec += 1000000000;
       ts.tv_sec -= 1;
     }
-    return Derived(ts);
+    return TimePointBase<Clock>(ts);
   }
-  Derived operator-(double rhs) const {
+  TimePointBase<Clock> operator-(double rhs) const {
     return *this + (-rhs);
   }
-  bool operator<(const Derived& rhs) const {
+  bool operator<(const TimePointBase<Clock>& rhs) const {
     if (time_.tv_sec == rhs.time_.tv_sec) {
       return time_.tv_nsec < rhs.time_.tv_nsec;
     }
     return time_.tv_sec < rhs.time_.tv_sec;
   }
+  std::string str() const;
 };
 
-class TimePoint : public TimePointBase<CLOCK_MONOTONIC, TimePoint> {
-  const std::vector<std::pair<int, std::string>> kTimeUnits = {
-    {7*24*60*60, "week"},
-    {24*60*60, "day"},
-    {60*60, "hour"},
-    {60, "minute"},
-    {1, "second"},
-  };
-public:
-  std::string str() const {
-    std::stringstream ss;
-    double diff = TimePoint() - *this;
-    int secs = (int)diff;
-    for (const auto& timeUnit : kTimeUnits) {
-      if (secs >= timeUnit.first) {
-        ss << (secs / timeUnit.first) << " " << timeUnit.second;
-        if (secs >= 2 * timeUnit.first) {
-          ss << "s";
-        }
-        ss << " ";
-        secs %= timeUnit.first;
-      }
-    }
-    ss << (int)((diff - (int)diff) * 1000.0) << "ms";
-    return ss.str();
-  }
-};
-class RealTimePoint : public TimePointBase<CLOCK_REALTIME, RealTimePoint> {
-public:
-  std::string str() const {
-    char buf[32];
-    struct tm tm;
-    localtime_r(&time_.tv_sec, &tm);
-    strftime(buf, 64, "%Y-%m-%d %H:%M:%S", &tm);
-    return std::string(buf);
-  }
-};
+typedef TimePointBase<CLOCK_MONOTONIC> TimePoint;
+typedef TimePointBase<CLOCK_REALTIME> RealTimePoint;
