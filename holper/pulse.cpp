@@ -1,9 +1,13 @@
 #include "pulse.h"
 #include "holper.h"
-#include <pulse/pulseaudio.h>
 #include "command.h"
 #include "consts.h"
+#include "context.h"
+#include "string.h"
+#include "request.h"
 #include "logger.h"
+#include <pulse/pulseaudio.h>
+#include <algorithm>
 void pulse_callback(pa_context *context, void *userdata);
 
 enum class PulseState
@@ -11,6 +15,13 @@ enum class PulseState
   CONNECTING,
   CONNECTED,
   ERROR,
+};
+
+class Params {
+  std::map<std::string, std::string> parameters_;
+public:
+  Params(std::map<std::string, std::string> params) : parameters_(params) {
+  }
 };
 
 class PulseAudio
@@ -21,7 +32,7 @@ private:
   pa_context* pulseContext_;
   std::string defaultSinkName_;
   const pa_sink_info* defaultSink_;
-  std::shared_ptr<Context> context_;
+  Context* context_;
   static void pulseSuccessCallback(pa_context* UNUSED(c), int UNUSED(success),
       void* UNUSED(p)) {}
   static void pulseServerInfoCallback(pa_context* UNUSED(c),
@@ -34,28 +45,30 @@ private:
     // TODO: call pa->callback(context)
     pa_context_state_t state = pa_context_get_state(context);
     switch(state) {
-      default: printf("What's %d?\n", (int)state); return;
+      default:
+        pa->context_->logger->debug("What's %d?\n", (int)state);
+        return;
       case PA_CONTEXT_UNCONNECTED:
-        pa->context_->logger->log(Logger::DEBUG, "PulseAudio state: PA_CONTEXT_UNCONNECTED");
+        pa->context_->logger->debug("PulseAudio state: PA_CONTEXT_UNCONNECTED");
         break;
       case PA_CONTEXT_CONNECTING:
-        pa->context_->logger->log(Logger::DEBUG, "PulseAudio state: PA_CONTEXT_CONNECTING");
+        pa->context_->logger->debug("PulseAudio state: PA_CONTEXT_CONNECTING");
         break;
       case PA_CONTEXT_AUTHORIZING:
-        pa->context_->logger->log(Logger::DEBUG, "PulseAudio state: PA_CONTEXT_AUTHORIZING");
+        pa->context_->logger->debug("PulseAudio state: PA_CONTEXT_AUTHORIZING");
         break;
       case PA_CONTEXT_SETTING_NAME:
-        pa->context_->logger->log(Logger::DEBUG, "PulseAudio state: PA_CONTEXT_SETTING_NAME");
+        pa->context_->logger->debug("PulseAudio state: PA_CONTEXT_SETTING_NAME");
         break;
       case PA_CONTEXT_TERMINATED:
-        pa->context_->logger->log(Logger::DEBUG, "PulseAudio state: PA_CONTEXT_TERMINATED");
+        pa->context_->logger->debug("PulseAudio state: PA_CONTEXT_TERMINATED");
         break;
       case PA_CONTEXT_READY:
-        pa->context_->logger->log(Logger::DEBUG, "PulseAudio state: PA_CONTEXT_READY");
+        pa->context_->logger->debug("PulseAudio state: PA_CONTEXT_READY");
         pa->state_ = PulseState::CONNECTED;
         break;
       case PA_CONTEXT_FAILED:
-        pa->context_->logger->log(Logger::DEBUG, "PulseAudio state: PA_CONTEXT_FAILED");
+        pa->context_->logger->debug("PulseAudio state: PA_CONTEXT_FAILED");
         pa->logError("failed to connect");
         pa->state_ = PulseState::ERROR;
         break;
@@ -75,7 +88,7 @@ private:
     pa->defaultSink_ = info;
   }
   void logError(const char* msg) {
-      context_->logger->log(Logger::ERROR, "%s: %s",
+      context_->logger->error("%s: %s",
           msg, pa_strerror(pa_context_errno(pulseContext_)));
   }
   void iterate(pa_operation* op) {
@@ -98,7 +111,7 @@ private:
     }
   }
 public:
-  PulseAudio(std::shared_ptr<Context> context) : context_(context) {
+  PulseAudio(Context* context) : context_(context) {
   }
   ~PulseAudio() {
     pa_context_disconnect(pulseContext_);
@@ -137,16 +150,15 @@ public:
     iterate(pa_context_get_sink_info_by_name(pulseContext_, defaultSinkName_.c_str(), pulseSinkInfoCallback, this));
   }
 
-  void incrementVolume(double increment) {
-    float old_vol_perc = pa_cvolume_avg(&defaultSink_->volume) * 1.0f / 65536;
-    float vol_perc = old_vol_perc + increment;
+  float getVolume() {
+    return pa_cvolume_avg(&defaultSink_->volume) * 1.0f / 65536;
+  }
+  void setVolume(float vol_perc) {
     if (vol_perc < 0.0f) {
       vol_perc = 0.0f;
     } else if (vol_perc > 2.0f) {
       vol_perc = 2.0f;
     }
-    context_->logger->log(Logger::INFO, "%s volume %3.2f->%3.2f", defaultSinkName_.c_str(),
-        old_vol_perc, vol_perc);
     pa_cvolume cvol;
     pa_cvolume_set(&cvol, defaultSink_->volume.channels,
         (pa_volume_t)(vol_perc * 65536));
@@ -154,69 +166,94 @@ public:
         defaultSinkName_.c_str(), &cvol, pulseSuccessCallback, this));
   }
   void setMute(bool mute) {
-    context_->logger->log(Logger::INFO, "Setting %s %smute", defaultSinkName_.c_str(), mute?"":"un");
     iterate(pa_context_set_sink_mute_by_name(pulseContext_, defaultSinkName_.c_str(),
-          (int)mute, pulseSuccessCallback, this));
+      (int)mute, pulseSuccessCallback, this));
+  }
+  bool isMuted() {
+    return defaultSink_->mute;
   }
   void toggleMute() {
     return setMute(!defaultSink_->mute);
   }
 };
 
-class VolumeChangeAction : public Action
+class VolumeAction : public Action
 {
-public:
-  VolumeChangeAction(std::shared_ptr<Context> context) : Action(context) {}
-  virtual boost::optional<boost::program_options::options_description>
-      options() const {
-    boost::program_options::options_description desc;
-    desc.add_options()
-      ("volume", boost::program_options::value<int>()->default_value(5),
-       "Amount to increase volume by");
-    return boost::make_optional(desc);
+protected:
+  std::string help() const {
+    return "  Arguments:\n"
+      "    incr:[AMOUNT}: increase volume by amount\n"
+      "    set:[VALUE}: set volume to value\n"
+      "    mute: mute/unmute the sink\n";
   }
-  virtual boost::optional<boost::program_options::positional_options_description>
-      positionalOptions() const {
-    boost::program_options::positional_options_description desc;
-    desc.add("volume", 1);
-    return boost::make_optional(desc);
+
+  std::optional<std::string> failReason(Request* req) const {
+    const auto& params = req->parameters();
+    auto it = params.end();
+    int t;
+    int opcnt = 0;
+    if ((it = params.find("incr")) != params.end()) {
+      opcnt++;
+      if (!St::to<int>(it->second, &t)) {
+        return St::fmt("Value of incr unparsable: %s", it->second.c_str());
+      }
+    }
+    if ((it = params.find("set")) != params.end()) {
+      opcnt++;
+      if (!St::to<int>(it->second, &t)) {
+        return St::fmt("Value of set unparsable: %s", it->second.c_str());
+      }
+    }
+    if ((it = params.find("mute")) != params.end()) {
+      opcnt++;
+      if (it->second.size() != 0) {
+        return St::fmt("Mute does not take a value: %s", it->second.c_str());
+      }
+    }
+    if (opcnt == 0) {
+      return "No operation was specified";
+    }
+    if (opcnt > 1) {
+      return "Got multiple operations";
+    }
+    return std::nullopt;
   }
-  std::string act(boost::program_options::variables_map vm) const
-  {
-    int vol = vm["volume"].as<int>();
-    PulseAudio pa(context_);;
+
+  rapidjson::Value actOn(Request* req) const {
+    const auto& params = req->parameters();
+    PulseAudio pa(context_);
     pa.init();
-    pa.incrementVolume(0.01f * vol);
-    return "success";
+    rapidjson::Value val(rapidjson::kObjectType);
+    auto& alloc = req->response().alloc();
+    float vol = pa.getVolume();
+    bool mute = pa.isMuted();
+    if (params.find("mute") != params.end()) {
+      pa.toggleMute();
+      val.AddMember("volume", rapidjson::Value(vol), alloc);
+      val.AddMember("old_mute", rapidjson::Value(mute), alloc);
+      val.AddMember("new_mute", rapidjson::Value(!mute), alloc);
+    } else {
+      int incr;
+      St::to<int>(params.find("incr")->second, &incr);
+      float new_vol = vol + incr * 0.01f;
+      new_vol = std::clamp(new_vol, 0.0f, 2.0f);
+      pa.setVolume(new_vol);
+      val.AddMember("old_volume", rapidjson::Value((int)(100 * vol)), alloc);
+      val.AddMember("new_volume", rapidjson::Value((int)(100 * new_vol)), alloc);
+      val.AddMember("mute", rapidjson::Value(mute), alloc);
+    }
+    return val;
   }
+
+public:
+  VolumeAction(Context* context) : Action(context) {}
 };
 
-class VolumeMuteAction : public Action
+void PulseCommandGroup::registerCommands(Context* context,
+      Command* command)
 {
-public:
-  VolumeMuteAction(std::shared_ptr<Context> context) : Action(context) {}
-  std::string act(boost::program_options::variables_map UNUSED(vm)) const
-  {
-    PulseAudio pa(context_);;
-    pa.init();
-    pa.toggleMute();
-    return "success";
-  }
-};
-
-
-void PulseCommandGroup::registerCommands(std::shared_ptr<Context> context,
-      std::shared_ptr<Command> command)
-{
-  command
-    ->name("vol")->name("volume")
-    ->help("Volume management");
-  command->addChild()
-    ->name("incr")->name("increase")->name("i")
-    ->help("Increase volume by amount")
-    ->action(new VolumeChangeAction(context));
-  command->addChild()
-    ->name("mute")->name("m")
-    ->help("Toggle mute/unmute")
-    ->action(new VolumeMuteAction(context));
+  (*command)
+    .setName("volume").setName("vol")
+    .setDescription("Volume management")
+    .makeAction<VolumeAction>(context);
 }

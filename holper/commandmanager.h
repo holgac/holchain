@@ -1,17 +1,20 @@
 #pragma once
-#include "command.h"
+#include <functional>
+#include <memory>
+
+class Context;
+class Command;
 
 class CommandManager
 {
   std::unique_ptr<Command> root_;
-  std::shared_ptr<Context> context_;
+  Context* context_;
 public:
-  CommandManager(std::shared_ptr<Context> context) : context_(context) {}
-  void init();
-  void resolveRequest(Request* req);
-  const Command* rootCommand() {
+  CommandManager(Context* context);
+  ~CommandManager() {}
+  void registerCommandGroup(std::function<void(Context*,Command*)> factory);
+  Command* resolveCommand(const std::vector<std::string> command_tokens);
+  const Command* root() {
     return root_.get();
   }
 };
-
-

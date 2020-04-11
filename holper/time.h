@@ -4,6 +4,15 @@
 #include <vector>
 #include <sstream>
 
+class TimeDelta {
+private:
+  double value_;
+public:
+  TimeDelta(double value) : value_(value) {}
+  double value() { return value_; }
+  std::string str();
+};
+
 template <clock_t Clock>
 class TimePointBase {
 protected:
@@ -21,13 +30,13 @@ public:
   struct timespec timespec() {
     return time_;
   }
-  double operator-(const TimePointBase<Clock>& rhs) const {
-    return value() - rhs.value();
+  TimeDelta operator-(const TimePointBase<Clock>& rhs) const {
+    return TimeDelta(value() - rhs.value());
   }
-  TimePointBase<Clock> operator+(double rhs) const {
+  TimePointBase<Clock> operator+(TimeDelta rhs) const {
     struct timespec ts;
-    ts.tv_sec = time_.tv_sec + (long)rhs;
-    ts.tv_nsec = time_.tv_nsec + (rhs - (long)rhs) * 1000000000.0;
+    ts.tv_sec = time_.tv_sec + (long)rhs.value();
+    ts.tv_nsec = time_.tv_nsec + (rhs.value() - (long)rhs.value()) * 1000000000.0;
     if (ts.tv_nsec >= 1000000000) {
       ts.tv_nsec -= 1000000000;
       ts.tv_sec += 1;

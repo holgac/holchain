@@ -1,7 +1,6 @@
 #include "time.h"
 
-template<>
-std::string TimePoint::str() const {
+namespace {
   const std::vector<std::pair<int, std::string>> kTimeUnits = {
     {7*24*60*60, "week"},
     {24*60*60, "day"},
@@ -9,8 +8,27 @@ std::string TimePoint::str() const {
     {60, "minute"},
     {1, "second"},
   };
+  std::string secondsToString(double val) {
+    std::stringstream ss;
+    if (val < 0.001) {
+      ss <<  val*1000000 << "ns";
+    } else if (val < 1.0) {
+      ss <<  val*1000 << "ms";
+    } else {
+      ss << val << "s";
+    }
+    return ss.str();
+  }
+}
+
+std::string TimeDelta::str() {
+  return secondsToString(value_);
+}
+
+template<>
+std::string TimePoint::str() const {
   std::stringstream ss;
-  double diff = TimePoint() - *this;
+  double diff = (TimePoint() - *this).value();
   int secs = (int)diff;
   for (const auto& timeUnit : kTimeUnits) {
     if (secs >= timeUnit.first) {
@@ -22,7 +40,7 @@ std::string TimePoint::str() const {
       secs %= timeUnit.first;
     }
   }
-  ss << (int)((diff - (int)diff) * 1000.0) << "ms";
+  ss << secondsToString((diff - (int)diff));
   return ss.str();
 }
 template <>

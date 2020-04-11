@@ -4,6 +4,9 @@
 #include <queue>
 #include <string>
 #include <memory>
+#include "exception.h"
+#include "string.h"
+
 class Context;
 
 class LockMutex {
@@ -11,7 +14,10 @@ private:
   pthread_mutex_t* mutex_;
 public:
   LockMutex(pthread_mutex_t* mutex) : mutex_(mutex) {
-    pthread_mutex_lock(mutex_);
+    int r = pthread_mutex_lock(mutex_);
+    if (r != 0) {
+      THROW("Mutex lock failed: %s", StringUtils::errorString(r));
+    }
   }
   ~LockMutex() {
     pthread_mutex_unlock(mutex_);
@@ -20,17 +26,19 @@ public:
 
 class ThreadBase
 {
-private:
-  std::string name_;
 protected:
+  std::string name_;
   virtual void run() = 0;
-  std::shared_ptr<Context> context_;
+  Context* context_;
 public:
-  ThreadBase(std::string name, std::shared_ptr<Context> context)
+  ThreadBase(std::string name, Context* context)
       : name_(name), context_(context) {}
   void start() {
     pthread_t tmp;
-    pthread_create(&tmp, NULL, startThread, (void*)this);
+    int r = pthread_create(&tmp, NULL, startThread, (void*)this);
+    if (r != 0) {
+      THROW("Thread creation failed: %s", StringUtils::errorString(r));
+    }
   }
   static void* startThread(void* thread_ptr);
 };
@@ -43,32 +51,37 @@ private:
   pthread_t thread_;
   pthread_mutex_t messagesMutex_;
   sem_t messagesSemaphore_;
-  bool running_;
 public:
-  Thread(std::string name, std::shared_ptr<Context> context)
-      : ThreadBase(name, context) {}
-  void sendMessage(T* t) {
+  Thread(std::string name, Context* context)
+      : ThreadBase(name, context) {
+    int r = pthread_mutex_init(&messagesMutex_, NULL);
+    if (r != 0) {
+      THROW("Mutex init failed: %s", StringUtils::errorString(r));
+    }
+    r = sem_init(&messagesSemaphore_, 0, 0);
+    if (r != 0) {
+      THROW("Semaphore init failed: %s", StringUtils::errorString(r));
+    }
+  }
+  void sendMessage(std::unique_ptr<T> t) {
     {
       LockMutex lock(&messagesMutex_);
-      messages_.push(std::unique_ptr<T>(t));
+      messages_.push(std::move(t));
     }
-    sem_post(&messagesSemaphore_);
+    int r = sem_post(&messagesSemaphore_);
+    if (r != 0) {
+      THROW("Semaphore post failed: %s", StringUtils::errorString(r));
+    }
   }
-  virtual void handleMessage(std::unique_ptr<T> msg) = 0;
   virtual void init() {}
-  void stop() {
-    running_ = false;
-  }
 protected:
-  virtual void run() {
-    // TODO: error handling
-    // TODO: do these in main thread
-    pthread_mutex_init(&messagesMutex_, NULL);
-    sem_init(&messagesSemaphore_, 0, 0);
+  void run() final {
     init();
-    running_ = true;
-    while(running_) {
-      sem_wait(&messagesSemaphore_);
+    while(true) {
+      int r = sem_wait(&messagesSemaphore_);
+      if (r != 0) {
+        THROW("Semaphore wait failed: %s", StringUtils::errorString(r));
+      }
       std::unique_ptr<T> msg;
       {
         LockMutex lock(&messagesMutex_);
@@ -78,6 +91,7 @@ protected:
       handleMessage(std::move(msg));
     }
   }
+  virtual void handleMessage(std::unique_ptr<T> msg) = 0;
 };
 
 

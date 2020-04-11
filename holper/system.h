@@ -1,9 +1,10 @@
 #pragma once
+#include <memory>
 
 class Context;
 class Command;
 
-class DisplayCommandGroup
+class SystemCommandGroup
 {
 public:
   static void registerCommands(Context* context, Command* command);

@@ -2,50 +2,44 @@
 #include <memory>
 #include <string>
 #include <list>
-#include <boost/program_options.hpp>
-#include <boost/optional.hpp>
+#include <map>
+#include <optional>
+#include <rapidjson/document.h>
 class Context;
 class Request;
 
 class Action
 {
-private:
-  boost::program_options::variables_map parse(const Request* req) const;
 protected:
-  std::shared_ptr<Context> context_;
-  // TODO: this should return a map
-  virtual std::string act(boost::program_options::variables_map vm) const = 0;
+  Context* context_;
 public:
-  Action(std::shared_ptr<Context> context) : context_(context) {}
-  virtual boost::optional<boost::program_options::options_description>
-      options() const {
-    return boost::none;
-  }
-  virtual boost::optional<boost::program_options::positional_options_description>
-      positionalOptions() const {
-    return boost::none;
-  }
-  bool canActOn(const Request* req) const;
-  std::string actOn(Request* req) const;
+  Action(Context* context) : context_(context) {}
+  virtual std::optional<std::string> failReason(Request* req) const = 0;
+  virtual rapidjson::Value actOn(Request* req) const = 0;
+  virtual std::string help() const = 0;
 };
 
-class Command
+class Command final
 {
   std::list<std::string> names_;
   std::string primaryName_;
-  std::string help_;
+  std::string description_;
   std::unique_ptr<Action> action_;
-  std::list<std::shared_ptr<Command>> children_;
+  std::list<std::unique_ptr<Command>> children_;
+  Command* parent_;
 public:
-  Command();
-  // TODO: rename setters to setX and getters to x
+  Command(Command* parent);
   void validate();
-  Command* name(std::string name, bool primary=false);
-  Command* help(std::string help);
-  Command* action(Action* action);
-  std::shared_ptr<Command> addChild();
-  std::shared_ptr<Command> getChild(std::string name);
-  bool hasAction();
-  const Action* getAction() const;
-  std::string helpMessage() const;
+  Command& setName(const std::string& name, bool primary=false);
+  Command& setDescription(const std::string& description);
+  template <typename T, typename... Args>
+  Command& makeAction(Args... args) {
+    return setAction(std::make_unique<T>(args...));
+  }
+  Command& setAction(std::unique_ptr<Action> action);
+  Command* addChild();
+  Command* getChild(std::string name);
+  const Action* action() const;
+  std::string help() const;
+  std::string name() const;
 };

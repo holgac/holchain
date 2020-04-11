@@ -9,6 +9,8 @@
 #include <pthread.h>
 #include <stdarg.h>
 #include "consts.h"
+#include "string.h"
+
 class LogTarget
 {
 public:
@@ -47,11 +49,8 @@ public:
   };
 private:
   std::vector<std::unique_ptr<LogTarget>> targets_;
-  void _log(const char* string, size_t len) {
-    for (auto &target: targets_) {
-      target.get()->write(string, len);
-    }
-  }
+  void _logToTargets(const char* string, size_t len);
+  void _logErrno(const std::string& log);
   const std::map<Level, const char*> levelColors_ = {
     {DEBUG, Consts::TerminalColors::WHITE},
     {INFO, Consts::TerminalColors::WHITE},
@@ -61,44 +60,41 @@ private:
     {FATAL, Consts::TerminalColors::RED},
     {INTERNAL, Consts::TerminalColors::PURPLE},
   };
+  void _log(Level level, const std::string& message);
+  Level verbosity_;
 public:
+  Logger(Level verbosity = DEBUG) : verbosity_(verbosity) {}
   void addTarget(LogTarget* target) {
     targets_.push_back(std::unique_ptr<LogTarget>(target));
   }
-  // TODO: cpp file
   // TODO: something like stringstream
-  // TODO: only log if verbosity allows
-  // TODO: error() info() etc. methods and macros w/file+line
-  void log(Level level, const char* format, ...) {
-    const size_t BUFLEN = 8192;
-    char buf[BUFLEN];
-    va_list ap;
-    time_t t = time(NULL);
-    struct tm tm;
-    localtime_r(&t, &tm);
-    size_t size = strftime(buf, BUFLEN, "%Y-%m-%d %H:%M:%S", &tm);
-    char threadname[32];
-    pthread_getname_np(pthread_self(), threadname, 32);
-    size += snprintf(buf + size, BUFLEN - size,
-        " [%lld:%lld,%s]: %s", (long long)getpid(), (long long)gettid(),
-        threadname, levelColors_.at(level));
-    va_start(ap, format);
-    int vsnlen = vsnprintf(buf + size, BUFLEN - size, format, ap);
-    va_end(ap);
-    int deflen = strlen(Consts::TerminalColors::DEFAULT);
-    size += vsnlen;
-    if (vsnlen < 0 || size + deflen + 1 >= BUFLEN) {
-      if (level != INTERNAL) {
-        log(INTERNAL, "Can't log \"%s\"", format);
-      } else {
-        std::string msg("Can't even log the format string");
-        _log(msg.c_str(), msg.size());
-      }
-      return;
-    }
-    memcpy(buf + size, Consts::TerminalColors::DEFAULT, deflen);
-    buf[size + deflen] = '\n';
-    _log(buf, size + deflen + 1);
+  template <typename... Args>
+  void debug(const char* fmt, Args... args) {
+    _log(Logger::DEBUG, St::fmt(fmt, args...));
+  }
+  template <typename... Args>
+  void info(const char* fmt, Args... args) {
+    _log(Logger::INFO, St::fmt(fmt, args...));
+  }
+  template <typename... Args>
+  void warn(const char* fmt, Args... args) {
+    _log(Logger::WARN, St::fmt(fmt, args...));
+  }
+  template <typename... Args>
+  void mustfix(const char* fmt, Args... args) {
+    _log(Logger::MUSTFIX, St::fmt(fmt, args...));
+  }
+  template <typename... Args>
+  void error(const char* fmt, Args... args) {
+    _log(Logger::ERROR, St::fmt(fmt, args...));
+  }
+  template <typename... Args>
+  void fatal(const char* fmt, Args... args) {
+    _log(Logger::FATAL, St::fmt(fmt, args...));
+  }
+  template <typename... Args>
+  void logErrno(const char* fmt, Args... args) {
+    _logErrno(St::fmt(fmt, args...));
   }
 };
 

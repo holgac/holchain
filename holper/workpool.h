@@ -13,17 +13,16 @@ class WorkPoolWorker : public ThreadBase
 {
 private:
   WorkPool* workPool_;
-  bool running_;
+  int id_;
 public:
-  WorkPoolWorker(std::string name, std::shared_ptr<Context> context, WorkPool* workPool)
-      : ThreadBase(name, context), workPool_(workPool) {}
+  WorkPoolWorker(int id, Context* context, WorkPool* workPool);
   void run();
 };
 
 struct WorkPoolArgs
 {
   std::unique_ptr<Request> request;
-  explicit WorkPoolArgs(std::unique_ptr<Request>&& req)
+  explicit WorkPoolArgs(std::unique_ptr<Request> req)
       : request(std::move(req)) {}
 };
 
@@ -34,7 +33,8 @@ public:
   {
   public:
     std::unique_ptr<Request> request;
-    explicit Work(std::unique_ptr<Request>&& req)
+    TimePoint ctime;
+    explicit Work(std::unique_ptr<Request> req)
         : request(std::move(req)) {}
   };
 private:
@@ -42,12 +42,9 @@ private:
   sem_t workSemaphore_;
   std::queue<std::unique_ptr<Work>> works_;
   std::list<std::unique_ptr<WorkPoolWorker>> workers_;
-  size_t poolSize_;
 public:
-  WorkPool(std::shared_ptr<Context> context, size_t poolSize)
-      : Thread("WorkPool", context), poolSize_(poolSize) {}
+  WorkPool(Context* context, size_t poolSize);
   void handleMessage(std::unique_ptr<WorkPoolArgs> msg);
   // Only called from worker threads
-  std::unique_ptr<Request> getWork();
-  void init();
+  std::unique_ptr<Request> getRequest();
 };

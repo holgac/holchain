@@ -7,7 +7,7 @@ Type=notify
 # Another Type: forking
 WorkingDirectory=/home/revani
 
-ExecStart=/home/revani/develop/holchain/holper/holper
+ExecStart=/home/revani/develop/holchain/holper/server -v
 Restart=on-failure
 # Other restart options: always, on-abort, etc
 #Environment=

@@ -1,33 +1,45 @@
 #include "info.h"
 #include "holper.h"
-#include <iomanip>
 #include "command.h"
 #include "consts.h"
-#include "logger.h"
+#include "request.h"
+#include "context.h"
+#include "exception.h"
+#include <rapidjson/document.h>
 
 class StatsAction : public Action
 {
-public:
-  StatsAction(std::shared_ptr<Context> context) : Action(context) {}
-  std::string act(boost::program_options::variables_map UNUSED(vm)) const {
-    std::stringstream stream;
-    // TODO: tokenize when returning a map
-    stream << "Holper " << HOLPER_VERSION << "\n"
-      << "Up since " << context_->startRealTime.str() << "\n"
-      << "Uptime: " << context_->startTime.str() << "\n"
-    ;
-    return stream.str();
+protected:
+  std::optional<std::string> failReason(Request* UNUSED(req)) const {
+    return std::nullopt;
   }
+  rapidjson::Value actOn(Request* req) const {
+    rapidjson::Value val(rapidjson::kObjectType);
+    auto& alloc = req->response().alloc();
+    val.AddMember("version", HOLPER_VERSION, alloc);
+    std::string st = context_->stats.startRealTime.str();
+    val.AddMember("starttime",
+        rapidjson::Value(st.c_str(), st.size(), alloc), alloc);
+    st = context_->stats.startTime.str();
+    val.AddMember("uptime",
+        rapidjson::Value(st.c_str(), st.size(), alloc), alloc);
+    return val;
+  }
+  std::string help() const {
+    UNREACHABLE;
+  }
+public:
+  StatsAction(Context* context) : Action(context) {}
 };
 
-void InfoCommandGroup::registerCommands(std::shared_ptr<Context> context,
-      std::shared_ptr<Command> command)
+void InfoCommandGroup::registerCommands(Context* context,
+    Command* command)
 {
-  command
-    ->name("info")
-    ->help("Internal info and stats for the daemon");
-  command->addChild()
-    ->name("stats")
-    ->help("Internal stats")
-    ->action(new StatsAction(context));
+  (*command)
+    .setName("info")
+    .setDescription("Internal info and stats for the daemon");
+  (*command->addChild())
+    .setName("stats")
+    .setDescription("Internal stats")
+    .makeAction<StatsAction>(context);
 }

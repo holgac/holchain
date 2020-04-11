@@ -1,87 +1,46 @@
 #pragma once
 #include "holper.h"
-#include "consts.h"
-#include "logger.h"
-#include "sdbus.h"
-#include <variant>
-#include <map>
+#include "socket.h"
+#include "profiler.h"
+#include <rapidjson/document.h>
+#include <rapidjson/allocators.h>
+#include <memory>
 #include <vector>
 #include <string>
-#include <unistd.h>
+#include <map>
 
 class Command;
 class Request;
 
 class Response {
+private:
   friend class Request;
-  typedef std::variant<int, long long, double, bool, std::string> Value;
-  std::map<std::string, Value> values_;
-  void serializeValue(std::ostream& out, Value value) {
-    auto ival = std::get_if<int>(&value);
-    if (ival) {
-      out << *ival;
-      return;
-    }
-    auto lval = std::get_if<long long>(&value);
-    if (lval) {
-      out << *lval;
-      return;
-    }
-    auto dval = std::get_if<double>(&value);
-    if (dval) {
-      out << *dval;
-      return;
-    }
-    auto bval = std::get_if<bool>(&value);
-    if (bval) {
-      if (*bval) {
-        out << "true";
-      } else {
-        out << "false";
-      }
-      return;
-    }
-    auto sval = std::get_if<std::string>(&value);
-    if (sval) {
-      out << "\"";
-      for ( auto c : *sval ) {
-        if (false);
-        else if (c == '"') out << "\\\"";
-        else if (c == '\\') out << "\\\\";
-        else if (c == '/') out << "\\/";
-        else if (c == '\b') out << "\\b";
-        else if (c == '\f') out << "\\f";
-        else if (c == '\n') out << "\\n";
-        else if (c == '\r') out << "\\r";
-        else if (c == '\t') out << "\\t";
-        else out << c;
-      }
-      out << "\"";
-      return;
-    }
-    THROW("This should not have been possible but here we are");
+  rapidjson::Value value_;
+  rapidjson::Document doc_;
+  Response() : value_(rapidjson::kObjectType) {
   }
-
 public:
-  Response& set(const std::string& key, Value value) {
-    values_[key] = value;
+  rapidjson::Document::AllocatorType& alloc() {
+    return doc_.GetAllocator();
+  }
+  template <typename T>
+  Response& set(std::string key, T value) {
+    value_.AddMember(
+        rapidjson::Value(key.c_str(), key.size(), alloc()),
+        rapidjson::Value(value),
+        alloc());
     return *this;
   }
-  std::string serialize() {
-    std::stringstream ss;
-    ss << "{";
-    for( const auto& value : values_ ) {
-      ss << "\"" << value.first << "\":";
-      serializeValue(ss, value.second);
-      ss << ",";
-    }
-    auto str = ss.str();
-    str.back() = '}';
-    return str;
-  }
+  Response& set(std::string key, const std::string& value);
+  Response& set(std::string key, const char* value);
+  Response& set(std::string key, std::nullptr_t value);
+  Response& set(std::string key, rapidjson::Value& value);
+  std::string serialize();
 };
 
+class Resolver;
 class Request {
+  friend class Resolver;
   /*
    * current request lifecycle:
    * Server thread creates(only id populated)
@@ -90,116 +49,46 @@ class Request {
    */
   // TODO: not thread safe
   static int idCounter_;
-  int socket_;
   int id_;
-  bool rawArgsSet_ = false;
-  std::vector<std::string> rawArgs_;
-  bool argsSet_ = false;
-  std::vector<std::string> args_;
-  bool commandSet_ = false;
-  bool resolved_ = false;
-  std::shared_ptr<Command> command_;
+  Profiler profiler_;
+  std::unique_ptr<UnixSocket> socket_;
   Response response_;
-  std::shared_ptr<Context> context_;
-  // TODO: add some profiling stuff here
+  Context* context_;
+  Command* command_ = nullptr;
+  bool verbose_ = false;
+  std::vector<std::string> commandTokens_;
+  std::map<std::string, std::string> parameters_;
+  void setVerbose(bool verbose);
+  void setCommandTokens(std::vector<std::string>& command_tokens);
+  void setParameters(std::map<std::string, std::string>& parameters);
+  void setCommand(Command* command);
 public:
-  explicit Request(std::shared_ptr<Context> context, int socket)
-      : socket_(socket), id_(++idCounter_), context_(context) {
-    if (socket_ < 0) {
-      THROW("Error checks in socket creation failed?");
-    }
+  Request(Context* context, std::unique_ptr<UnixSocket> socket)
+      : id_(++idCounter_), profiler_(socket->ctime()),
+        socket_(std::move(socket)), context_(context) {
   }
   ~Request() {
-    if (socket_ >= 0) {
-      context_->logger->log(Logger::ERROR, "Request %d never responded!", id_);
-    }
   }
   int id() const {
     return id_;
   }
-  int socket() const {
-    return socket_;
-  }
-  void setRawArgs(std::vector<std::string>&& rawArgs) {
-    // TODO: surround with #if DEBUG or something more c++
-    if (rawArgsSet_) {
-      THROW("Setting rawArgs twice in request %d!", id_);
-    }
-    rawArgs_ = rawArgs;
-    rawArgsSet_ = true;
-  }
-  std::vector<std::string>& rawArgs() {
-    if (!rawArgsSet_) {
-      THROW("Getting rawArgs before setting in request %d!", id_);
-    }
-    return rawArgs_;
-  }
-  const std::vector<std::string>& rawArgs() const {
-    if (!rawArgsSet_) {
-      THROW("Getting rawArgs before setting in request %d!", id_);
-    }
-    return rawArgs_;
-  }
-  void setArgs(std::vector<std::string>&& args) {
-    if (argsSet_) {
-      THROW("Setting args twice in request %d!", id_);
-    }
-    args_ = args;
-    argsSet_ = true;
-  }
-  std::vector<std::string>& args() {
-    if (!argsSet_) {
-      THROW("Getting args before setting in request %d!", id_);
-    }
-    return args_;
-  }
-  const std::vector<std::string>& args() const {
-    if (!argsSet_) {
-      THROW("Getting args before setting in request %d!", id_);
-    }
-    return args_;
-  }
-  void setCommand(const std::shared_ptr<Command>& command, bool resolved) {
-    if (commandSet_) {
-      THROW("Setting command twice in request %d!", id_);
-    }
-    command_ = command;
-    commandSet_ = true;
-    resolved_ = resolved;
-  }
-  std::shared_ptr<Command>& command() {
-    if (!commandSet_) {
-      THROW("Getting command before setting in request %d!", id_);
-    }
-    return command_;
-  }
-  const std::shared_ptr<Command>& command() const {
-    if (!commandSet_) {
-      THROW("Getting command before setting in request %d!", id_);
-    }
-    return command_;
-  }
-  bool resolved() const {
-    return resolved_;
-  }
   Response& response() {
     return response_;
   }
-  const Response& response() const {
-    return response_;
+  UnixSocket* socket() {
+    return socket_.get();
   }
-  void respond() {
-    if (socket_ < 0) {
-      THROW("Request %d attempting to respond multiple times!", id_);
-    }
-    std::string msg = response_.serialize();
-    context_->logger->log(Logger::INFO, "Response for request %d: %s%s%s", id_,
-        Consts::TerminalColors::YELLOW,
-        msg.c_str(),
-        Consts::TerminalColors::DEFAULT
-    );
-    write(socket_, msg.c_str(), msg.size());
-    close(socket_);
-    socket_ = -1;
+  Command* command();
+
+  void sendResponse(int code);
+
+  Profiler& profiler() {
+    return profiler_;
+  }
+  const std::map<std::string, std::string>& parameters() {
+    return parameters_;
+  }
+  bool verbose() {
+    return verbose_;
   }
 };

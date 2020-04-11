@@ -2,11 +2,13 @@
 #include "holper.h"
 #include <unistd.h>
 #include <fcntl.h>
-#include <sys/types.h>
-#include <sys/stat.h>
 #include "sdbus.h"
 #include "command.h"
 #include "logger.h"
+#include "context.h"
+#include "string.h"
+#include <sys/types.h>
+#include <sys/stat.h>
 
 class SpotifyAction : public Action
 {
@@ -17,20 +19,24 @@ private:
   const char* kSpotifyLocation = "/usr/bin/spotify";
   std::string method_;
   bool spawnOnFailure_;
+
 public:
-  SpotifyAction(std::shared_ptr<Context> context, std::string method, bool spawn = false)
+  SpotifyAction(Context* context, std::string method, bool spawn = false)
       : Action(context), method_(method), spawnOnFailure_(spawn) {}
-  std::string act(boost::program_options::variables_map UNUSED(vm)) const
-  {
-    SDBus bus(kSpotifyService, kSpotifyObject, kSpotifyIFace);
+
+protected:
+  std::optional<std::string> failReason(Request* UNUSED(req)) const {
+    return std::nullopt;
+  }
+  rapidjson::Value actOn(Request* UNUSED(req)) const {
+    SDBus bus(kSpotifyService, kSpotifyObject, kSpotifyIFace, true);
     try {
       bus.call(method_.c_str());
     } catch(HSDBusException& e) {
       if (!spawnOnFailure_ || strcmp(e.errorName(), SD_BUS_ERROR_SERVICE_UNKNOWN) != 0) {
-        context_->logger->log(Logger::ERROR, e.what());
-        return e.what();
+        throw;
       }
-      context_->logger->log(Logger::INFO, "Spawning a new spotify instance");
+      context_->logger->info("Spawning a new spotify instance");
       pid_t pid;
       if((pid = fork()) == 0) {
         // TODO: reset permissions and caps and stuff just in case
@@ -45,13 +51,14 @@ public:
         umask(027);
         execl(kSpotifyLocation, kSpotifyLocation, NULL);
       }
-      context_->logger->log(Logger::INFO, "Spotify pid: %ld", (long)pid);
+      context_->logger->info("Spotify pid: %ld", (long)pid);
       unsigned retries = 11;
       const useconds_t sleep_interval = 100000;
       while(--retries) {
         usleep(sleep_interval);
-        context_->logger->log(Logger::INFO,
-            "Spotify trying to %s again (%u retries left)", method_.c_str(), retries-1);
+        context_->logger->info(
+            "Spotify trying to %s again (%u retries left)",
+            method_.c_str(), retries-1);
         try {
           bus.call(method_.c_str());
           break;
@@ -62,38 +69,39 @@ public:
         }
       }
       if (!retries) {
-        return e.what();
+        throw;
       }
     }
-    return method_ + " succeeded";
+    return rapidjson::Value("Success");
+  }
+  std::string help() const {
+    UNREACHABLE;
   }
 };
 
 
-void MusicCommandGroup::registerCommands(std::shared_ptr<Context> context,
-      std::shared_ptr<Command> command)
-{
-  command
-    ->name("music")->name("mus")
-    ->help("Music control");
-  command->addChild()
-    ->name("play")
-    ->help("Play music")
-    ->action(new SpotifyAction(context, "Play", true));
-  command->addChild()
-    ->name("pause")
-    ->help("Pause music")
-    ->action(new SpotifyAction(context, "Pause"));
-  command->addChild()
-    ->name("playpause")->name("p")
-    ->help("Toggle play/pause music")
-    ->action(new SpotifyAction(context, "PlayPause", true));
-  command->addChild()
-    ->name("next")->name("n")
-    ->help("Next song")
-    ->action(new SpotifyAction(context, "Next"));
-  command->addChild()
-    ->name("prev")->name("previous")
-    ->help("Previous song")
-    ->action(new SpotifyAction(context, "Previous"));
+void MusicCommandGroup::registerCommands(Context* context, Command* command) {
+  (*command)
+    .setName("music").setName("mus")
+    .setDescription("Music control");
+  (*command->addChild())
+    .setName("play")
+    .setDescription("Play music")
+    .makeAction<SpotifyAction>(context, "Play", true);
+  (*command->addChild())
+    .setName("pause")
+    .setDescription("Pause music")
+    .makeAction<SpotifyAction>(context, "Pause");
+  (*command->addChild())
+    .setName("playpause").setName("p")
+    .setDescription("Toggle play/pause music")
+    .makeAction<SpotifyAction>(context, "PlayPause", true);
+  (*command->addChild())
+    .setName("next").setName("n")
+    .setDescription("Next song")
+    .makeAction<SpotifyAction>(context, "Next");
+  (*command->addChild())
+    .setName("prev").setName("previous")
+    .setDescription("Previous song")
+    .makeAction<SpotifyAction>(context, "Previous");
 }

@@ -1,36 +1,69 @@
 #include "workpool.h"
 #include "holper.h"
 #include "logger.h"
+#include "string.h"
+#include "context.h"
 #include "commandmanager.h"
+#include "command.h"
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 
-// TODO: move to request.cpp
-int Request::idCounter_;
+WorkPoolWorker::WorkPoolWorker(int id, Context* context, WorkPool* workPool)
+    : ThreadBase(St::fmt("WorkPoolWorker%d", id), context),
+      workPool_(workPool), id_(id) {}
 
 void WorkPoolWorker::run() {
-  running_ = true;
-  while (running_) {
-    auto request = workPool_->getWork();
-    context_->logger->log(Logger::INFO, "Will process request %d", request->id());
-    // TODO: we should have Action/Command etc. here. CommandManager stuff should
-    // run before here, probably in parser
-    std::string result = request->command()->getAction()->actOn(request.get());
-    context_->logger->log(Logger::INFO, "Sending response: %s%s%s",
-        Consts::TerminalColors::PURPLE,
-        result.c_str(),
+  while (true) {
+    auto request = std::move(workPool_->getRequest());
+    request->profiler().event("Received by WorkPoolWorker");
+    context_->logger->info("Will process request %d", request->id());
+    if (request->verbose()) {
+      request->response()
+        .set("worker", name_);
+    }
+    auto action = request->command()->action();
+    if (action == nullptr) {
+      request->response().set("response", request->command()->help());
+      request->sendResponse(-1);
+      continue;
+    }
+    rapidjson::Value res;
+    try {
+      auto reason = action->failReason(request.get());
+      if (reason) {
+        context_->logger->info(
+          "Request %d would fail: %s%s%s",
+          request->id(),
+          Consts::TerminalColors::RED,
+          reason->c_str(),
+          Consts::TerminalColors::DEFAULT);
+        request->response().set("response",
+            *reason + "\n" + request->command()->help());
+        request->sendResponse(-1);
+        continue;
+      }
+      res = action->actOn(request.get()).Move();
+    } catch (std::exception& e) {
+      context_->logger->info(
+        "Request %d failed: %s%s%s",
+        request->id(),
+        Consts::TerminalColors::RED,
+        e.what(),
         Consts::TerminalColors::DEFAULT);
-    request->response()
-      .set("response", result)
-      .set("code", 0);
-    request->respond();
+      request->response().set("response", e.what());
+      request->sendResponse(-1);
+      continue;
+    }
+    request->response().set("response", res.Move());
+    request->sendResponse(0);
   }
 }
 
 void WorkPool::handleMessage(std::unique_ptr<WorkPoolArgs> msg) {
-  context_->logger->log(Logger::INFO, "Received work for request %d",
-      msg->request->id());
-  std::unique_ptr<Work> work(new Work(std::move(msg->request)));
+  std::unique_ptr<Request> request = std::move(msg->request);
+  request->profiler().event("Received by WorkPool");
+  context_->logger->info("Received work for request %d", request->id());
+  std::unique_ptr<Work> work(new Work(std::move(request)));
   {
     LockMutex lock(&workMutex_);
     works_.push(std::move(work));
@@ -38,7 +71,7 @@ void WorkPool::handleMessage(std::unique_ptr<WorkPoolArgs> msg) {
   sem_post(&workSemaphore_);
 }
 
-std::unique_ptr<Request> WorkPool::getWork() {
+std::unique_ptr<Request> WorkPool::getRequest() {
   sem_wait(&workSemaphore_);
   std::unique_ptr<Work> work;
   {
@@ -46,14 +79,19 @@ std::unique_ptr<Request> WorkPool::getWork() {
     work = std::move(works_.front());
     works_.pop();
   }
+  // TODO: do some p50-p95 calculation for wait times
+  context_->logger->info(
+        "Request %d waited in queue for %s",
+      work->request->id(),
+      (TimePoint() - work->ctime).str().c_str());
   return std::move(work->request);
 }
-void WorkPool::init() {
-  for (size_t i=0; i<poolSize_; ++i) {
-    char thread_name[32];
-    sprintf(thread_name, "Worker%u", (unsigned)i);
-    WorkPoolWorker* worker = new WorkPoolWorker(thread_name, context_, this);
+
+WorkPool::WorkPool(Context* context, size_t poolSize)
+    : Thread("WorkPool", context) {
+  for (size_t i=0; i<poolSize; ++i) {
+    auto worker = std::make_unique<WorkPoolWorker>((int)i, context_, this);
     worker->start();
-    workers_.push_back(std::unique_ptr<WorkPoolWorker>(worker));
+    workers_.push_back(std::move(worker));
   }
 }
