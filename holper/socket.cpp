@@ -65,7 +65,7 @@ void UnixSocket::readRaw(u64 len, void* dest) {
   u64 total_read = 0;
   char* bytes = (char*)dest;
   while (total_read < len) {
-    int res = recv(socket_, bytes + total_read, len - total_read, 0);
+    int res = recv(socket_, bytes + total_read, len - total_read, MSG_WAITALL);
     if (res < 0) {
       THROW("Cannot read from unix socket: %s",
           StringUtils::errorString().c_str());

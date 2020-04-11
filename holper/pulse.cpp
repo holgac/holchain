@@ -17,13 +17,6 @@ enum class PulseState
   ERROR,
 };
 
-class Params {
-  std::map<std::string, std::string> parameters_;
-public:
-  Params(std::map<std::string, std::string> params) : parameters_(params) {
-  }
-};
-
 class PulseAudio
 {
 private:
@@ -180,14 +173,14 @@ public:
 class VolumeAction : public Action
 {
 protected:
-  std::string help() const {
+  std::string help() const override {
     return "  Arguments:\n"
       "    incr:[AMOUNT}: increase volume by amount\n"
       "    set:[VALUE}: set volume to value\n"
       "    mute: mute/unmute the sink\n";
   }
 
-  std::optional<std::string> failReason(Request* req) const {
+  std::optional<std::string> failReason(Request* req) const override {
     const auto& params = req->parameters();
     auto it = params.end();
     int t;
@@ -219,7 +212,7 @@ protected:
     return std::nullopt;
   }
 
-  rapidjson::Value actOn(Request* req) const {
+  rapidjson::Value actOn(Request* req) const override {
     const auto& params = req->parameters();
     PulseAudio pa(context_);
     pa.init();

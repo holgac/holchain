@@ -1,12 +1,8 @@
-This is my collection of small helper scripts. Ideally, $REPO/bin should be in $PATH.
+This is my collection of small helper scripts and system configs. Ideally, $REPO/bin should be in $PATH.
 
-Projects in node folder (should `cd node && npm start`, accessed through localhost:3000)
+Setup with rc/setup.
 
-redirect:
-  Under localhost:3000/redirect, used with chrome's search engine. I added basic search stuff for amazon, amazon primenow, some dictionaries etc. Good thing is, I can add an entry from chrome as well - I set chrome to easily register new keywords when I type "lca new_keyword https://www.example.com?q=$s". After this, whenever I type "new_keyword test", chrome is redirected to example.com?q=test.
+holper: a helper daemon with many commands
 
-localdb:
-  I use it as a simple key/value storage with the script I have in $REPO/bin.
 
-logger:
-  Logs the given log data to file.
+Everything in this repo is licensed under GPLv3 (see LICENSE) unless otherwise stated.

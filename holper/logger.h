@@ -30,7 +30,7 @@ public:
         close(fd_);
     }
   }
-  void write(const char* string, size_t len) {
+  void write(const char* string, size_t len) override {
     ::write(fd_, string, len);
   }
 };
@@ -97,5 +97,3 @@ public:
     _logErrno(St::fmt(fmt, args...));
   }
 };
-
-

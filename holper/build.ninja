@@ -21,17 +21,16 @@ build thread.o: cc thread.cpp
 build time.o: cc time.cpp
 build string.o: cc string.cpp
 build socket.o: cc socket.cpp
-build exception.o: cc exception.cpp
 build logger.o: cc logger.cpp
 build request.o: cc request.cpp
 build profiler.o: cc profiler.cpp
 build client.o: cc client.cpp
-build client: ld client.o string.o socket.o exception.o consts.o logger.o $
+build client: ld client.o string.o socket.o consts.o logger.o $
   time.o profiler.o
 build server.o: cc server.cpp
 build resolver.o: cc resolver.cpp
 build system.o: cc system.cpp
-build server: ld server.o string.o socket.o exception.o consts.o logger.o $
+build server: ld server.o string.o socket.o consts.o logger.o $
   time.o request.o thread.o resolver.o profiler.o commandmanager.o command.o $
   workpool.o info.o display.o pulse.o music.o system.o
 default client server

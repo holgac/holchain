@@ -44,7 +44,7 @@ private:
   std::list<std::unique_ptr<WorkPoolWorker>> workers_;
 public:
   WorkPool(Context* context, size_t poolSize);
-  void handleMessage(std::unique_ptr<WorkPoolArgs> msg);
+  void handleMessage(std::unique_ptr<WorkPoolArgs> msg) override;
   // Only called from worker threads
   std::unique_ptr<Request> getRequest();
 };

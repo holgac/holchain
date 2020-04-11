@@ -3,7 +3,6 @@
 #include <memory>
 
 class Logger;
-class Parser;
 class Server;
 class WorkPool;
 class CommandManager;
@@ -17,7 +16,6 @@ struct Stats {
 struct Context {
   std::shared_ptr<Logger> logger;
   std::shared_ptr<Resolver> resolver;
-  std::shared_ptr<Parser> parser;
   std::shared_ptr<Server> server;
   std::shared_ptr<WorkPool> workPool;
   std::shared_ptr<CommandManager> commandManager;

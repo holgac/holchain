@@ -1,9 +1,11 @@
 #pragma once
 #include <exception>
+#include <string>
 #include "holper.h"
+#include "string.h"
 
-#define CEXCEPTION(EType, ...) EType(__FILE__, TO_STRING(__LINE__), __VA_ARGS__)
-#define EXCEPTION(...) HException(__FILE__, TO_STRING(__LINE__), __VA_ARGS__)
+#define CEXCEPTION(EType, ...) EType(__FILE__, __LINE__, __VA_ARGS__)
+#define EXCEPTION(...) HException(__FILE__, __LINE__, __VA_ARGS__)
 #define THROW(...) throw EXCEPTION(__VA_ARGS__)
 #define CTHROW(...) throw CEXCEPTION(__VA_ARGS__)
 #define UNREACHABLE THROW("Unreachable code")
@@ -11,25 +13,21 @@
 // TODO: more exception types
 class HException : public std::exception
 {
-  char* message_ = nullptr;
+  std::string message_;
   const char* file_;
-  const char* line_;
+  int line_;
 public:
-  HException(const char* file, const char* line, const char* fmt, ...);
-  HException(HException&& he) {
-    message_ = he.message_;
-    he.message_ = nullptr;
-    file_ = he.file_;
-    line_ = he.line_;
+  template <typename... Args>
+  HException(const char* file, int line, const char* fmt, Args... args)
+    : message_(St::fmt((std::string("%s:%d: ") + fmt).c_str(),
+          file, line, args...)),
+      file_(file), line_(line) {
   }
-  ~HException() {
-    if (message_) {
-      delete[] message_;
-    }
+  HException(HException&& he)
+    : message_(std::move(he.message_)), file_(he.file_), line_(he.line_) {
   }
-  const char* what() const noexcept {
-    return message_;
+  ~HException() {}
+  const char* what() const noexcept override {
+    return message_.c_str();
   }
 };
-
-

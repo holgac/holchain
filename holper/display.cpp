@@ -40,7 +40,7 @@ class BrightnessChangeAction : public Action
 public:
   BrightnessChangeAction(Context* context) : Action(context) {}
 protected:
-  std::optional<std::string> failReason(Request* req) const {
+  std::optional<std::string> failReason(Request* req) const override {
     const auto& params = req->parameters();
     auto it = params.end();
     int opcnt = 0;
@@ -65,7 +65,7 @@ protected:
     }
     return std::nullopt;
   }
-  rapidjson::Value actOn(Request* req) const {
+  rapidjson::Value actOn(Request* req) const override {
     // TODO: helpers for reading sys files
     int max_raw_brightness, raw_brightness;
     {
@@ -108,12 +108,10 @@ protected:
     val.AddMember("new_brightness", rapidjson::Value(new_brightness), alloc);
     return val;
   }
-  std::string help() const {
-    std::stringstream ss;
-    ss << "  Arguments:\n";
-    ss << "    incr:[AMOUNT}: increase brightness by amount\n";
-    ss << "    set:[VALUE}: set brightness to value\n";
-    return ss.str();
+  std::string help() const override {
+    return "  Arguments:\n"
+      "    incr:[AMOUNT}: increase brightness by amount\n"
+      "    set:[VALUE}: set brightness to value\n";
   }
 };
 

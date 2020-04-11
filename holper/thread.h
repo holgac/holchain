@@ -75,7 +75,7 @@ public:
   }
   virtual void init() {}
 protected:
-  void run() final {
+  void run() final override {
     init();
     while(true) {
       int r = sem_wait(&messagesSemaphore_);
@@ -93,5 +93,3 @@ protected:
   }
   virtual void handleMessage(std::unique_ptr<T> msg) = 0;
 };
-
-

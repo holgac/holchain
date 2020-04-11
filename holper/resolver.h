@@ -15,5 +15,5 @@ class Resolver : public Thread<ResolverArgs>
 {
 public:
   explicit Resolver(Context* context) : Thread("Resolver", context) {}
-  void handleMessage(std::unique_ptr<ResolverArgs> msg);
+  void handleMessage(std::unique_ptr<ResolverArgs> msg) override;
 };

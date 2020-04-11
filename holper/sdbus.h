@@ -8,7 +8,7 @@ class HSDBusException : public HException
   sd_bus_error error_ = SD_BUS_ERROR_NULL;
 public:
   template<typename... Args>
-  HSDBusException(const char* file, const char* line, sd_bus_error error, Args... args)
+  HSDBusException(const char* file, int line, sd_bus_error error, Args... args)
     : HException(file, line, args...), error_(error) {
   }
   HSDBusException(HSDBusException&& he) : HException(std::move(he)) {
@@ -64,4 +64,3 @@ public:
     sd_bus_message_unref(m);
   }
 };
-

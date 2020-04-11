@@ -25,10 +25,10 @@ public:
       : Action(context), method_(method), spawnOnFailure_(spawn) {}
 
 protected:
-  std::optional<std::string> failReason(Request* UNUSED(req)) const {
+  std::optional<std::string> failReason(Request* UNUSED(req)) const override {
     return std::nullopt;
   }
-  rapidjson::Value actOn(Request* UNUSED(req)) const {
+  rapidjson::Value actOn(Request* UNUSED(req)) const override {
     SDBus bus(kSpotifyService, kSpotifyObject, kSpotifyIFace, true);
     try {
       bus.call(method_.c_str());
@@ -74,7 +74,7 @@ protected:
     }
     return rapidjson::Value("Success");
   }
-  std::string help() const {
+  std::string help() const override {
     UNREACHABLE;
   }
 };

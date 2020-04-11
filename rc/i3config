@@ -238,6 +238,8 @@ bindsym Shift+XF86MonBrightnessUp brightnessctl -d tpacpi::kbd_backlight set 1
 
 bindsym --release Print exec i3helper screenshot
 
+bindsym $mod+Shift+d exec i3-input -F 'exec goldendict %s' -P 'word: '
+
 bindsym $mod+Shift+m exec i3-input -l 1 -F 'mark %s' -P 'mark given window'
 bindsym $mod+m exec i3-input -l 1 -F '[con_mark="%s"] focus' -P 'go to mark'
 bindsym $mod+Mod1+c exec i3-input -l 2 -F 'exec i3helper copytoregister "%s"' -P 'copy to register'

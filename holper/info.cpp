@@ -10,10 +10,10 @@
 class StatsAction : public Action
 {
 protected:
-  std::optional<std::string> failReason(Request* UNUSED(req)) const {
+  std::optional<std::string> failReason(Request* UNUSED(req)) const override {
     return std::nullopt;
   }
-  rapidjson::Value actOn(Request* req) const {
+  rapidjson::Value actOn(Request* req) const override {
     rapidjson::Value val(rapidjson::kObjectType);
     auto& alloc = req->response().alloc();
     val.AddMember("version", HOLPER_VERSION, alloc);
@@ -25,7 +25,7 @@ protected:
         rapidjson::Value(st.c_str(), st.size(), alloc), alloc);
     return val;
   }
-  std::string help() const {
+  std::string help() const override {
     UNREACHABLE;
   }
 public:
