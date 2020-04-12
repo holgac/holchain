@@ -3,6 +3,7 @@
 #include <memory>
 #include <vector>
 #include <map>
+#include <functional>
 #include <cstring>
 #include <cstdio>
 #include <ctime>
@@ -32,6 +33,21 @@ public:
   }
   void write(const char* string, size_t len) override {
     ::write(fd_, string, len);
+  }
+};
+
+class Logger;
+
+class LogLine {
+  std::stringstream ss;
+  std::function<void(const std::string&)> log_;
+public:
+  LogLine(std::function<void(const std::string&)>);
+  ~LogLine();
+  template <typename T>
+  LogLine& operator<<(const T& val) {
+    ss << val;
+    return *this;
   }
 };
 
@@ -67,30 +83,37 @@ public:
   void addTarget(std::unique_ptr<LogTarget> target) {
     targets_.push_back(std::move(target));
   }
-  // TODO: something like stringstream
+  LogLine debug();
+  LogLine info();
+  LogLine warn();
+  LogLine mustfix();
+  LogLine error();
+  LogLine fatal();
+  LogLine logErrno();
+
   template <typename... Args>
   void debug(const char* fmt, Args... args) {
-    _log(Logger::DEBUG, St::fmt(fmt, args...));
+    _log(DEBUG, St::fmt(fmt, args...));
   }
   template <typename... Args>
   void info(const char* fmt, Args... args) {
-    _log(Logger::INFO, St::fmt(fmt, args...));
+    _log(INFO, St::fmt(fmt, args...));
   }
   template <typename... Args>
   void warn(const char* fmt, Args... args) {
-    _log(Logger::WARN, St::fmt(fmt, args...));
+    _log(WARN, St::fmt(fmt, args...));
   }
   template <typename... Args>
   void mustfix(const char* fmt, Args... args) {
-    _log(Logger::MUSTFIX, St::fmt(fmt, args...));
+    _log(MUSTFIX, St::fmt(fmt, args...));
   }
   template <typename... Args>
   void error(const char* fmt, Args... args) {
-    _log(Logger::ERROR, St::fmt(fmt, args...));
+    _log(ERROR, St::fmt(fmt, args...));
   }
   template <typename... Args>
   void fatal(const char* fmt, Args... args) {
-    _log(Logger::FATAL, St::fmt(fmt, args...));
+    _log(FATAL, St::fmt(fmt, args...));
   }
   template <typename... Args>
   void logErrno(const char* fmt, Args... args) {

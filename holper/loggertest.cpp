@@ -26,11 +26,16 @@ protected:
     // not deleting target_ since it's owned by logger
   }
 
+  void expectSubstring(const std::string& haystack, const std::string& needle) {
+    EXPECT_NE(haystack.find(needle), std::string::npos) <<
+      needle << " not found in " << haystack;
+  }
+
   BufferingLogTarget* target_;
   Logger logger_;
 };
 
-TEST_F(LoggerTest, LogTargetWorks) {
+TEST_F(LoggerTest, LogTarget) {
   logger_.info("test");
   EXPECT_EQ(target_->getLogs().size(), 1);
 }
@@ -44,6 +49,24 @@ TEST_F(LoggerTest, LogFormattingWorks) {
   for (int i=0; i<kLogCount; ++i) {
     char buf[32];
     sprintf(buf, "test %d", i);
-    EXPECT_NE(target_->getLogs()[i].find(buf), std::string::npos);
+    expectSubstring(target_->getLogs()[i], buf);
   }
+}
+
+TEST_F(LoggerTest, LogLine) {
+  logger_.info() << "test" << 123;
+  ASSERT_EQ(target_->getLogs().size(), 1);
+  expectSubstring(target_->getLogs()[0], "test123");
+}
+
+TEST_F(LoggerTest, Errno) {
+  int kErrno = 5;
+  char buf[512];
+  char* res;
+  res = strerror_r(kErrno, buf, 512);
+  errno = 5;
+  logger_.logErrno() << "test" << 125;
+  ASSERT_EQ(target_->getLogs().size(), 1);
+  expectSubstring(target_->getLogs()[0], "test125");
+  expectSubstring(target_->getLogs()[0], res);
 }

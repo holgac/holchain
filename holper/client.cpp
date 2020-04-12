@@ -52,7 +52,8 @@ int main(int argc, char** argv) {
         printHelpAndExit(opt=='h' ? 0 : -1);
     }
   }
-  context.logger.reset(new Logger(client_verbose ? Logger::DEBUG : Logger::MUSTFIX));
+  context.logger.reset(new Logger(
+        client_verbose ? Logger::DEBUG : Logger::MUSTFIX));
   context.logger->addTarget(std::make_unique<FDLogTarget>(STDERR_FILENO, false));
   profiler.event("Read program options");
   rapidjson::Document document;

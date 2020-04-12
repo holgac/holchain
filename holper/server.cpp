@@ -53,7 +53,6 @@ public:
   }
 };
 
-
 int main(int argc, char** argv) {
   Context context;
   int opt;
