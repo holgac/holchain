@@ -29,7 +29,7 @@ protected:
   }
 };
 
-void SystemCommandGroup::registerCommands(Context* context,
+void SystemCommandGroup::initializeCommand(Context* context,
     Command* command) {
   (*command)
     .setName("system")

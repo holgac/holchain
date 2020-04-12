@@ -80,7 +80,7 @@ protected:
 };
 
 
-void MusicCommandGroup::registerCommands(Context* context, Command* command) {
+void MusicCommandGroup::initializeCommand(Context* context, Command* command) {
   (*command)
     .setName("music").setName("mus")
     .setDescription("Music control");

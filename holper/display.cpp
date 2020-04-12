@@ -115,7 +115,7 @@ protected:
   }
 };
 
-void DisplayCommandGroup::registerCommands(Context* context,
+void DisplayCommandGroup::initializeCommand(Context* context,
     Command* command) {
   (*command)
     .setName("display")

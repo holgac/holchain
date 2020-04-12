@@ -32,7 +32,7 @@ public:
   StatsAction(Context* context) : Action(context) {}
 };
 
-void InfoCommandGroup::registerCommands(Context* context,
+void InfoCommandGroup::initializeCommand(Context* context,
     Command* command)
 {
   (*command)

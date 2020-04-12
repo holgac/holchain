@@ -53,6 +53,7 @@ public:
   }
 };
 
+
 int main(int argc, char** argv) {
   Context context;
   int opt;
@@ -118,11 +119,11 @@ int main(int argc, char** argv) {
   context.resolver.reset(new Resolver(&context));
   context.resolver->start();
   context.commandManager.reset(new CommandManager(&context));
-  context.commandManager->registerCommandGroup(InfoCommandGroup::registerCommands);
-  context.commandManager->registerCommandGroup(DisplayCommandGroup::registerCommands);
-  context.commandManager->registerCommandGroup(PulseCommandGroup::registerCommands);
-  context.commandManager->registerCommandGroup(MusicCommandGroup::registerCommands);
-  context.commandManager->registerCommandGroup(SystemCommandGroup::registerCommands);
+  context.commandManager->registerCommandGroup<InfoCommandGroup>();
+  context.commandManager->registerCommandGroup<DisplayCommandGroup>();
+  context.commandManager->registerCommandGroup<PulseCommandGroup>();
+  context.commandManager->registerCommandGroup<MusicCommandGroup>();
+  context.commandManager->registerCommandGroup<SystemCommandGroup>();
   context.workPool.reset(new WorkPool(&context, worker_threads));
   context.workPool->start();
   Server server(&context, socket_path);

@@ -242,7 +242,7 @@ public:
   VolumeAction(Context* context) : Action(context) {}
 };
 
-void PulseCommandGroup::registerCommands(Context* context,
+void PulseCommandGroup::initializeCommand(Context* context,
       Command* command)
 {
   (*command)

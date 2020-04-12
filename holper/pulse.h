@@ -6,5 +6,5 @@ class Command;
 class PulseCommandGroup
 {
 public:
-  static void registerCommands(Context* context, Command* command);
+  static void initializeCommand(Context* context, Command* command);
 };

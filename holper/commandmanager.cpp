@@ -8,13 +8,12 @@
 #include "music.h"
 #include "display.h"
 #include "request.h"
-#include <boost/program_options.hpp>
 
-void CommandManager::registerCommandGroup(
-    std::function<void(Context*,Command*)> factory
+void CommandManager::initializeCommand(
+    std::function<void(Context*,Command*)> initializer
 ) {
   Command* cmd = root_->addChild();
-  factory(context_, cmd);
+  initializer(context_, cmd);
   cmd->validate();
 }
 

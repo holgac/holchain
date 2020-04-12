@@ -1,4 +1,4 @@
-cflags = -Wall -Werror -g -std=c++2a -Wextra
+cflags = -Wall -Werror -g -std=c++2a -Wextra -fconcepts
 ldflags = -pthread -lpulse -lsystemd -lX11 -lXext
 
 rule cc
