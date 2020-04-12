@@ -6,6 +6,7 @@
 #include "logger.h"
 #include "exception.h"
 #include "resolver.h"
+#include "responder.h"
 #include "commandmanager.h"
 #include "command.h"
 #include "workpool.h"
@@ -46,7 +47,8 @@ public:
   void accept(std::unique_ptr<UnixSocket> socket) {
     std::unique_ptr<Request> request(new Request(context_, std::move(socket)));
     context_->logger->debug("Server received new request: %d", request->id());
-    context_->resolver->sendMessage(std::make_unique<ResolverArgs>(request));
+    context_->resolver->sendMessage(
+        std::make_unique<ResolverArgs>(std::move(request)));
   }
   void serve() {
     socket_->serve(std::bind(&Server::accept, this, std::placeholders::_1));
@@ -117,6 +119,8 @@ int main(int argc, char** argv) {
   context.logger->addTarget(std::make_unique<FDLogTarget>(logfd, true));
   context.resolver.reset(new Resolver(&context));
   context.resolver->start();
+  context.responder.reset(new Responder(&context));
+  context.responder->start();
   context.commandManager.reset(new CommandManager(&context));
   context.commandManager->registerCommandGroup<InfoCommandGroup>();
   context.commandManager->registerCommandGroup<DisplayCommandGroup>();

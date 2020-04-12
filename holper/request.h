@@ -100,8 +100,7 @@ public:
       : id_(++idCounter_), profiler_(socket->ctime()),
         socket_(std::move(socket)), context_(context) {
   }
-  ~Request() {
-  }
+  ~Request();
   int id() const {
     return id_;
   }

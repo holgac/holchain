@@ -4,10 +4,19 @@
 #include "commandmanager.h"
 #include "command.h"
 #include "workpool.h"
+#include "responder.h"
 #include <rapidjson/document.h>
 #include <vector>
 #include <string>
 #include <map>
+
+void Resolver::sendToResponder(Request* request,
+    rapidjson::Value response, int code) {
+  // This runs in worker threads
+  context_->logger->info("Sending request %d to responder", request->id());
+  context_->responder->sendMessage(std::make_unique<ResponderArgs>(
+        std::unique_ptr<Request>(request), response, code));
+}
 
 void Resolver::handleMessage(std::unique_ptr<ResolverArgs> msg) {
   std::unique_ptr<Request> request = std::move(msg->request);
@@ -39,6 +48,8 @@ void Resolver::handleMessage(std::unique_ptr<ResolverArgs> msg) {
   context_->logger->info("Request %d will run %s",
       request->id(),
       request->command()->name().c_str());
-  context_->workPool->sendMessage(
-      std::make_unique<WorkPoolArgs>(std::move(request)));
+  auto req_ptr = request.release();
+  context_->workPool->sendMessage(std::make_unique<Work>(req_ptr,
+      std::bind(&Resolver::sendToResponder, this, req_ptr,
+          std::placeholders::_1, std::placeholders::_2)));
 }

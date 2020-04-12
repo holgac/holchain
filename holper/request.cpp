@@ -86,3 +86,7 @@ void Request::setCommand(Command* command) {
 Command* Request::command() {
   return command_;
 }
+
+Request::~Request() {
+  context_->logger->info("Request %d destroyed", id_);
+}

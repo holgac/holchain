@@ -30,9 +30,10 @@ build client: ld client.o string.o socket.o consts.o logger.o $
 build server.o: cc server.cpp
 build resolver.o: cc resolver.cpp
 build system.o: cc system.cpp
+build responder.o: cc responder.cpp
 build server: ld server.o string.o socket.o consts.o logger.o $
   time.o request.o thread.o resolver.o profiler.o commandmanager.o command.o $
-  workpool.o info.o display.o pulse.o music.o system.o
+  workpool.o info.o display.o pulse.o music.o system.o responder.o
 build loggertest.o: cc loggertest.cpp
 build test: ld loggertest.o logger.o string.o consts.o time.o
   ldflags = $ldflags -lgtest -lgtest_main
