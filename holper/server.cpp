@@ -100,7 +100,8 @@ int main(int argc, char** argv) {
     }
   }
   context.logger.reset(new Logger(verbose ? Logger::DEBUG : Logger::MUSTFIX));
-  context.logger->addTarget(new FDLogTarget(STDOUT_FILENO, false));
+  context.logger->addTarget(
+      std::make_unique<FDLogTarget>(STDOUT_FILENO, false));
   std::string logfile;
   if (dev_mode) {
     logfile = St::fmt("/run/user/%d/holperdev.log", getuid());
@@ -113,7 +114,7 @@ int main(int argc, char** argv) {
     context.logger->logErrno("Log file %s failed to open", logfile.c_str());
     THROW("Log file %s failed to open", logfile.c_str());
   }
-  context.logger->addTarget(new FDLogTarget(logfd, true));
+  context.logger->addTarget(std::make_unique<FDLogTarget>(logfd, true));
   context.resolver.reset(new Resolver(&context));
   context.resolver->start();
   context.commandManager.reset(new CommandManager(&context));

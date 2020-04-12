@@ -42,6 +42,6 @@ rc/*.backup
 .ninja_deps
 .gdb_history
 
-holper/holper
 holper/server
 holper/client
+holper/test

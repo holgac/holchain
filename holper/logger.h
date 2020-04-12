@@ -64,8 +64,8 @@ private:
   Level verbosity_;
 public:
   Logger(Level verbosity = DEBUG) : verbosity_(verbosity) {}
-  void addTarget(LogTarget* target) {
-    targets_.push_back(std::unique_ptr<LogTarget>(target));
+  void addTarget(std::unique_ptr<LogTarget> target) {
+    targets_.push_back(std::move(target));
   }
   // TODO: something like stringstream
   template <typename... Args>
