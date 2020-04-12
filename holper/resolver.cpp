@@ -33,8 +33,8 @@ void Resolver::handleMessage(std::unique_ptr<ResolverArgs> msg) {
   request->profiler().event("Payload json parsed");
   request->setCommand(
       context_->commandManager->resolveCommand(command_tokens));
-  request->setCommandTokens(command_tokens);
-  request->setParameters(parameters);
+  request->setCommandTokens(std::move(command_tokens));
+  request->setParameters(std::move(parameters));
   request->profiler().event("Resolved command");
   context_->logger->info("Request %d will run %s",
       request->id(),

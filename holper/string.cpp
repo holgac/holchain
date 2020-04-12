@@ -5,8 +5,20 @@
 #include <errno.h>
 
 template <>
-bool StringUtils::to(const std::string& str, int* val) {
-  return sscanf(str.c_str(), "%d", val) == 1;
+bool StringUtils::to(const std::string& str, int& val) {
+  char tmp;
+  return sscanf(str.c_str(), "%d%c", &val, &tmp) == 1;
+}
+
+template <>
+bool StringUtils::to(const std::string& str, std::string& val) {
+  val = str;
+  return true;
+}
+
+template <>
+bool StringUtils::to(const std::string& str, nullptr_t& UNUSED(val)) {
+  return str.empty();
 }
 
 std::string StringUtils::fmt(const char* fmt, ...) {

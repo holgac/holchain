@@ -10,12 +10,16 @@
 class StatsAction : public Action
 {
 protected:
-  std::optional<std::string> failReason(Request* UNUSED(req)) const override {
+  std::optional<std::string> failReason(
+      const Parameters& params) const override {
+    if (!params.map().empty()) {
+      return "Stats action takes no parameter";
+    }
     return std::nullopt;
   }
-  rapidjson::Value actOn(Request* req) const override {
+  rapidjson::Value actOn(const Parameters& UNUSED(params),
+      rapidjson::Document::AllocatorType& alloc) const override {
     rapidjson::Value val(rapidjson::kObjectType);
-    auto& alloc = req->response().alloc();
     val.AddMember("version", HOLPER_VERSION, alloc);
     std::string st = context_->stats.startRealTime.str();
     val.AddMember("starttime",
@@ -26,7 +30,7 @@ protected:
     return val;
   }
   std::string help() const override {
-    UNREACHABLE;
+    return "";
   }
 public:
   StatsAction(Context* context) : Action(context) {}

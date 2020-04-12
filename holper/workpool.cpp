@@ -29,7 +29,7 @@ void WorkPoolWorker::run() {
     }
     rapidjson::Value res;
     try {
-      auto reason = action->failReason(request.get());
+      auto reason = action->failReason(request->parameters());
       if (reason) {
         context_->logger->info(
           "Request %d would fail: %s%s%s",
@@ -42,7 +42,8 @@ void WorkPoolWorker::run() {
         request->sendResponse(-1);
         continue;
       }
-      res = action->actOn(request.get()).Move();
+      res = action->actOn(request->parameters(),
+          request->response().alloc()).Move();
     } catch (std::exception& e) {
       context_->logger->info(
         "Request %d failed: %s%s%s",

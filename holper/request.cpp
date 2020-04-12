@@ -71,11 +71,11 @@ void Request::sendResponse(int code) {
 void Request::setVerbose(bool verbose) {
   verbose_ = verbose;
 }
-void Request::setCommandTokens(std::vector<std::string>& command_tokens) {
+void Request::setCommandTokens(std::vector<std::string>&& command_tokens) {
   commandTokens_ = std::move(command_tokens);
 }
-void Request::setParameters(std::map<std::string, std::string>& parameters) {
-  parameters_ = std::move(parameters);
+void Request::setParameters(std::map<std::string, std::string>&& parameters) {
+  parameters_.set(std::move(parameters));
 }
 void Request::setCommand(Command* command) {
   if (command == nullptr) {

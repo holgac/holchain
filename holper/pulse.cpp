@@ -180,29 +180,25 @@ protected:
       "    mute: mute/unmute the sink\n";
   }
 
-  std::optional<std::string> failReason(Request* req) const override {
-    const auto& params = req->parameters();
-    auto it = params.end();
-    int t;
+  std::optional<std::string> failReason(const Parameters& params) const override {
     int opcnt = 0;
-    if ((it = params.find("incr")) != params.end()) {
-      opcnt++;
-      if (!St::to<int>(it->second, &t)) {
-        return St::fmt("Value of incr unparsable: %s", it->second.c_str());
-      }
+    bool exists;
+    // TODO: validator
+    if (!params.get<int>("incr", &exists) && exists) {
+      return St::fmt("incr value not int: %s",
+          params.get<std::string>("incr")->c_str());
     }
-    if ((it = params.find("set")) != params.end()) {
-      opcnt++;
-      if (!St::to<int>(it->second, &t)) {
-        return St::fmt("Value of set unparsable: %s", it->second.c_str());
-      }
+    opcnt += (int)exists;
+    if (!params.get<int>("set", &exists) && exists) {
+      return St::fmt("set value not int: %s",
+          params.get<std::string>("set")->c_str());
     }
-    if ((it = params.find("mute")) != params.end()) {
-      opcnt++;
-      if (it->second.size() != 0) {
-        return St::fmt("Mute does not take a value: %s", it->second.c_str());
-      }
+    opcnt += (int)exists;
+    if (!params.get<nullptr_t>("mute", &exists) && exists) {
+      return St::fmt("mute should have no value: %s",
+          params.get<std::string>("mute")->c_str());
     }
+    opcnt += (int)exists;
     if (opcnt == 0) {
       return "No operation was specified";
     }
@@ -212,29 +208,31 @@ protected:
     return std::nullopt;
   }
 
-  rapidjson::Value actOn(Request* req) const override {
-    const auto& params = req->parameters();
+  rapidjson::Value actOn(const Parameters& params,
+      rapidjson::Document::AllocatorType& alloc) const override {
     PulseAudio pa(context_);
     pa.init();
     rapidjson::Value val(rapidjson::kObjectType);
-    auto& alloc = req->response().alloc();
     float vol = pa.getVolume();
     bool mute = pa.isMuted();
-    if (params.find("mute") != params.end()) {
+    if (params.get<nullptr_t>("mute")) {
       pa.toggleMute();
       val.AddMember("volume", rapidjson::Value(vol), alloc);
       val.AddMember("old_mute", rapidjson::Value(mute), alloc);
       val.AddMember("new_mute", rapidjson::Value(!mute), alloc);
-    } else {
-      int incr;
-      St::to<int>(params.find("incr")->second, &incr);
-      float new_vol = vol + incr * 0.01f;
-      new_vol = std::clamp(new_vol, 0.0f, 2.0f);
-      pa.setVolume(new_vol);
-      val.AddMember("old_volume", rapidjson::Value((int)(100 * vol)), alloc);
-      val.AddMember("new_volume", rapidjson::Value((int)(100 * new_vol)), alloc);
-      val.AddMember("mute", rapidjson::Value(mute), alloc);
+      return val;
     }
+    float new_vol;
+    if (auto incr = params.get<int>("incr")) {
+      new_vol = vol + *incr * 0.01f;
+    } else if (auto set = params.get<int>("set")) {
+      new_vol = *set * 0.01f;
+    }
+    new_vol = std::clamp(new_vol, 0.0f, 2.0f);
+    pa.setVolume(new_vol);
+    val.AddMember("old_volume", rapidjson::Value((int)(100 * vol)), alloc);
+    val.AddMember("new_volume", rapidjson::Value((int)(100 * new_vol)), alloc);
+    val.AddMember("mute", rapidjson::Value(mute), alloc);
     return val;
   }
 

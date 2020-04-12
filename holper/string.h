@@ -6,7 +6,7 @@ namespace StringUtils {
   std::string errorString();
   std::string errorString(int err);
   template <typename T>
-  bool to(const std::string&, T*);
+  bool to(const std::string&, T&);
 }
 
 namespace St = StringUtils;

@@ -40,23 +40,20 @@ class BrightnessChangeAction : public Action
 public:
   BrightnessChangeAction(Context* context) : Action(context) {}
 protected:
-  std::optional<std::string> failReason(Request* req) const override {
-    const auto& params = req->parameters();
-    auto it = params.end();
+  std::optional<std::string> failReason(const Parameters& params) const override {
     int opcnt = 0;
-    int tmp;
-    if ((it = params.find("incr")) != params.end()) {
-      opcnt++;
-      if (!St::to<int>(it->second, &tmp)) {
-        return St::fmt("incr value not int: %s", it->second.c_str());
-      }
+    bool exists;
+    // TODO: validator
+    if (!params.get<int>("incr", &exists) && exists) {
+      return St::fmt("incr value not int: %s",
+          params.get<std::string>("incr")->c_str());
     }
-    if ((it = params.find("set")) != params.end()) {
-      opcnt++;
-      if (!St::to<int>(it->second, &tmp)) {
-        return St::fmt("set value not int: %s", it->second.c_str());
-      }
+    opcnt += (int)exists;
+    if (!params.get<int>("set", &exists) && exists) {
+      return St::fmt("set value not int: %s",
+          params.get<std::string>("set")->c_str());
     }
+    opcnt += (int)exists;
     if (opcnt == 0) {
       return "No operation was specified";
     }
@@ -65,7 +62,8 @@ protected:
     }
     return std::nullopt;
   }
-  rapidjson::Value actOn(Request* req) const override {
+  rapidjson::Value actOn(const Parameters& params,
+      rapidjson::Document::AllocatorType& alloc) const override {
     // TODO: helpers for reading sys files
     int max_raw_brightness, raw_brightness;
     {
@@ -78,17 +76,10 @@ protected:
     }
     float brightness = raw_brightness * 1.0f / max_raw_brightness;
     float new_brightness = brightness;
-    const auto& params = req->parameters();
-    auto it = params.end();
-    if ((it = params.find("incr")) != params.end()) {
-      int incr;
-      St::to<int>(it->second, &incr);
-      new_brightness += incr * 0.01f;
-    }
-    if ((it = params.find("set")) != params.end()) {
-      int incr;
-      St::to<int>(it->second, &incr);
-      new_brightness = incr * 0.01f;
+    if (auto incr = params.get<int>("incr")) {
+      new_brightness += *incr * 0.01f;
+    } else if (auto set = params.get<int>("set")) {
+      new_brightness = *set * 0.01f;
     }
     new_brightness = std::clamp(new_brightness, 0.0f, 1.0f);
     if (brightness < 0.001f && new_brightness > brightness) {
@@ -103,11 +94,11 @@ protected:
       brightness_file << raw_brightness;
     }
     rapidjson::Value val(rapidjson::kObjectType);
-    auto& alloc = req->response().alloc();
     val.AddMember("old_brightness", rapidjson::Value(brightness), alloc);
     val.AddMember("new_brightness", rapidjson::Value(new_brightness), alloc);
     return val;
   }
+
   std::string help() const override {
     return "  Arguments:\n"
       "    incr:[AMOUNT}: increase brightness by amount\n"

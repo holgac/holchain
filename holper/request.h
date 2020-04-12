@@ -2,6 +2,7 @@
 #include "holper.h"
 #include "socket.h"
 #include "profiler.h"
+#include "string.h"
 #include <rapidjson/document.h>
 #include <rapidjson/allocators.h>
 #include <memory>
@@ -11,6 +12,7 @@
 
 class Command;
 class Request;
+class Resolver;
 
 class Response {
 private:
@@ -38,7 +40,38 @@ public:
   std::string serialize();
 };
 
-class Resolver;
+
+class Parameters {
+  friend class Request;
+  std::map<std::string,std::string> parameters_;
+  void set(std::map<std::string,std::string>&& parameters) {
+    parameters_ = std::move(parameters);
+  }
+public:
+  Parameters() {}
+  const std::map<std::string,std::string>& map() const {
+    return parameters_;
+  }
+  template <typename T>
+  std::optional<T> get(const std::string& name, bool* exists = nullptr) const {
+    auto it = parameters_.find(name);
+    if (it == parameters_.end()) {
+      if (exists) {
+        *exists = false;
+      }
+      return std::nullopt;
+    }
+    if (exists) {
+      *exists = true;
+    }
+    T val;
+    if(St::to<T>(it->second, val)) {
+      return val;
+    }
+    return std::nullopt;
+  }
+};
+
 class Request {
   friend class Resolver;
   /*
@@ -57,10 +90,10 @@ class Request {
   Command* command_ = nullptr;
   bool verbose_ = false;
   std::vector<std::string> commandTokens_;
-  std::map<std::string, std::string> parameters_;
+  Parameters parameters_;
   void setVerbose(bool verbose);
-  void setCommandTokens(std::vector<std::string>& command_tokens);
-  void setParameters(std::map<std::string, std::string>& parameters);
+  void setCommandTokens(std::vector<std::string>&& command_tokens);
+  void setParameters(std::map<std::string,std::string>&& parameters);
   void setCommand(Command* command);
 public:
   Request(Context* context, std::unique_ptr<UnixSocket> socket)
@@ -85,7 +118,7 @@ public:
   Profiler& profiler() {
     return profiler_;
   }
-  const std::map<std::string, std::string>& parameters() {
+  const Parameters& parameters() {
     return parameters_;
   }
   bool verbose() {
