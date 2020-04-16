@@ -21,7 +21,7 @@ namespace {
   }
 }
 
-std::string TimeDelta::str() {
+std::string TimeDelta::str() const {
   return secondsToString(value_);
 }
 

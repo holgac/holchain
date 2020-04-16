@@ -9,8 +9,11 @@ private:
   double value_;
 public:
   TimeDelta(double value) : value_(value) {}
-  double value() { return value_; }
-  std::string str();
+  double value() const { return value_; }
+  std::string str() const;
+  TimeDelta operator-() const {
+    return TimeDelta(-value_);
+  }
 };
 
 template <clock_t Clock>
@@ -20,6 +23,9 @@ protected:
 public:
   TimePointBase() {
     clock_gettime(Clock, &time_);
+  }
+  TimePointBase(const TimePointBase<Clock>& rhs) {
+    time_ = rhs.time_;
   }
   TimePointBase(struct timespec ts) {
     time_ = ts;
@@ -33,7 +39,15 @@ public:
   TimeDelta operator-(const TimePointBase<Clock>& rhs) const {
     return TimeDelta(value() - rhs.value());
   }
-  TimePointBase<Clock> operator+(TimeDelta rhs) const {
+  TimePointBase<Clock> operator=(const TimePointBase<Clock> rhs) {
+    time_ = rhs.time_;
+    return *this;
+  }
+  TimePointBase<Clock> operator+=(const TimeDelta rhs) {
+    (*this) = (*this) + rhs;
+    return *this;
+  }
+  TimePointBase<Clock> operator+(const TimeDelta rhs) const {
     struct timespec ts;
     ts.tv_sec = time_.tv_sec + (long)rhs.value();
     ts.tv_nsec = time_.tv_nsec + (rhs.value() - (long)rhs.value()) * 1000000000.0;

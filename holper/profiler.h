@@ -10,13 +10,14 @@
 class Profiler
 {
   TimePoint start_;
-  std::vector<std::pair<std::string, TimePoint>> events_;
+  std::multimap<TimePoint, std::string> events_;
 public:
   Profiler() {}
-  Profiler(TimePoint start) : start_(start) {}
-  void event(const std::string& name) {
-    events_.push_back(std::pair<std::string, TimePoint>(name, TimePoint()));
+  Profiler(const TimePoint& start) : start_(start) {}
+  void event(const std::string& name, const TimePoint tp = TimePoint()) {
+    events_.insert(std::make_pair(tp, name));
   }
   std::string str();
+  Profiler& operator+=(const Profiler& prof);
   rapidjson::Value json(rapidjson::Document::AllocatorType& alloc);
 };

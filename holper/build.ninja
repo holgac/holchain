@@ -35,6 +35,9 @@ build server: ld server.o string.o socket.o consts.o logger.o $
   time.o request.o thread.o resolver.o profiler.o commandmanager.o command.o $
   workpool.o info.o display.o pulse.o music.o system.o responder.o
 build loggertest.o: cc loggertest.cpp
-build test: ld loggertest.o logger.o string.o consts.o time.o
+build stringtest.o: cc stringtest.cpp
+build profilertest.o: cc profilertest.cpp
+build test: ld loggertest.o stringtest.o logger.o string.o consts.o time.o $
+  profilertest.o profiler.o
   ldflags = $ldflags -lgtest -lgtest_main
 default client server
