@@ -6,6 +6,7 @@
 #include "string.h"
 #include "request.h"
 #include "exception.h"
+#include "workpool.h"
 #include <fstream>
 #include <algorithm>
 #include <X11/Xatom.h>
@@ -40,7 +41,8 @@ class BrightnessChangeAction : public Action
 public:
   BrightnessChangeAction(Context* context) : Action(context) {}
 protected:
-  std::optional<std::string> failReason(const Parameters& params) const override {
+  std::optional<std::string> failReason(Work* work) const override {
+    auto& params = work->parameters();
     int opcnt = 0;
     bool exists;
     // TODO: validator
@@ -62,8 +64,8 @@ protected:
     }
     return std::nullopt;
   }
-  rapidjson::Value actOn(const Parameters& params,
-      rapidjson::Document::AllocatorType& alloc) const override {
+  rapidjson::Value actOn(Work* work) const override {
+    auto& params = work->parameters();
     // TODO: helpers for reading sys files
     int max_raw_brightness, raw_brightness;
     {
@@ -94,8 +96,12 @@ protected:
       brightness_file << raw_brightness;
     }
     rapidjson::Value val(rapidjson::kObjectType);
-    val.AddMember("old_brightness", rapidjson::Value(brightness), alloc);
-    val.AddMember("new_brightness", rapidjson::Value(new_brightness), alloc);
+    val.AddMember("old_brightness",
+        rapidjson::Value(brightness),
+        work->allocator());
+    val.AddMember("new_brightness",
+        rapidjson::Value(new_brightness),
+        work->allocator());
     return val;
   }
 

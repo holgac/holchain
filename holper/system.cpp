@@ -2,6 +2,7 @@
 #include "holper.h"
 #include "command.h"
 #include "sdbus.h"
+#include "workpool.h"
 #include <optional>
 #include <string>
 
@@ -16,15 +17,13 @@ public:
   Login1Action(Context* context, std::string method)
       : Action(context), method_(method) {}
 protected:
-  std::optional<std::string> failReason(
-      const Parameters& params) const override {
-    if (!params.map().empty()) {
+  std::optional<std::string> failReason(Work* work) const override {
+    if (!work->parameters().map().empty()) {
       return method_  + " takes no parameter";
     }
     return std::nullopt;
   }
-  rapidjson::Value actOn(const Parameters& UNUSED(params),
-      rapidjson::Document::AllocatorType& UNUSED(alloc)) const override {
+  rapidjson::Value actOn(Work* UNUSED(work)) const override {
     SDBus bus(kLogin1Service, kLogin1Object, kLogin1IFace, false);
     bus.call(method_.c_str(), "b", false);
     return rapidjson::Value("Success");

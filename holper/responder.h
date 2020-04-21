@@ -9,7 +9,7 @@ struct ResponderArgs {
   std::unique_ptr<Request> request;
   int code;
   rapidjson::Value response;
-  ResponderArgs(std::unique_ptr<Request> req, rapidjson::Value& resp,
+  ResponderArgs(std::unique_ptr<Request> req, rapidjson::Value resp,
       int returnCode
   ) : request(std::move(req)), code(returnCode), response(std::move(resp)) {}
 };

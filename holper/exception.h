@@ -2,13 +2,16 @@
 #include <exception>
 #include <string>
 #include "holper.h"
-#include "string.h"
 
 #define CEXCEPTION(EType, ...) EType(__FILE__, __LINE__, __VA_ARGS__)
 #define EXCEPTION(...) HException(__FILE__, __LINE__, __VA_ARGS__)
 #define THROW(...) throw EXCEPTION(__VA_ARGS__)
 #define CTHROW(...) throw CEXCEPTION(__VA_ARGS__)
 #define UNREACHABLE THROW("Unreachable code")
+
+namespace StringUtils {
+  std::string fmt(const char* fmt, ...);
+}
 
 // TODO: more exception types
 class HException : public std::exception
@@ -19,7 +22,7 @@ class HException : public std::exception
 public:
   template <typename... Args>
   HException(const char* file, int line, const char* fmt, Args... args)
-    : message_(St::fmt((std::string("%s:%d: ") + fmt).c_str(),
+    : message_(StringUtils::fmt((std::string("%s:%d: ") + fmt).c_str(),
           file, line, args...)),
       file_(file), line_(line) {
   }

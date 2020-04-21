@@ -5,20 +5,21 @@
 #include "request.h"
 #include "context.h"
 #include "exception.h"
+#include "workpool.h"
 #include <rapidjson/document.h>
 
 class StatsAction : public Action
 {
 protected:
-  std::optional<std::string> failReason(
-      const Parameters& params) const override {
+  std::optional<std::string> failReason(Work* work) const override {
+    auto& params = work->parameters();
     if (!params.map().empty()) {
       return "Stats action takes no parameter";
     }
     return std::nullopt;
   }
-  rapidjson::Value actOn(const Parameters& UNUSED(params),
-      rapidjson::Document::AllocatorType& alloc) const override {
+  rapidjson::Value actOn(Work* work) const override {
+    auto& alloc = work->allocator();
     rapidjson::Value val(rapidjson::kObjectType);
     val.AddMember("version", HOLPER_VERSION, alloc);
     std::string st = context_->stats.startRealTime.str();

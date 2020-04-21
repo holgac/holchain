@@ -6,6 +6,7 @@
 #include "string.h"
 #include "request.h"
 #include "logger.h"
+#include "workpool.h"
 #include <pulse/pulseaudio.h>
 #include <algorithm>
 void pulse_callback(pa_context *context, void *userdata);
@@ -180,7 +181,8 @@ protected:
       "    mute: mute/unmute the sink\n";
   }
 
-  std::optional<std::string> failReason(const Parameters& params) const override {
+  std::optional<std::string> failReason(Work* work) const override {
+    auto& params = work->parameters();
     int opcnt = 0;
     bool exists;
     // TODO: validator
@@ -208,8 +210,8 @@ protected:
     return std::nullopt;
   }
 
-  rapidjson::Value actOn(const Parameters& params,
-      rapidjson::Document::AllocatorType& alloc) const override {
+  rapidjson::Value actOn(Work* work) const override {
+    auto& params = work->parameters();
     PulseAudio pa(context_);
     pa.init();
     rapidjson::Value val(rapidjson::kObjectType);
@@ -217,9 +219,9 @@ protected:
     bool mute = pa.isMuted();
     if (params.get<nullptr_t>("mute")) {
       pa.toggleMute();
-      val.AddMember("volume", rapidjson::Value(vol), alloc);
-      val.AddMember("old_mute", rapidjson::Value(mute), alloc);
-      val.AddMember("new_mute", rapidjson::Value(!mute), alloc);
+      val.AddMember("volume", rapidjson::Value(vol), work->allocator());
+      val.AddMember("old_mute", rapidjson::Value(mute), work->allocator());
+      val.AddMember("new_mute", rapidjson::Value(!mute), work->allocator());
       return val;
     }
     float new_vol;
@@ -230,9 +232,15 @@ protected:
     }
     new_vol = std::clamp(new_vol, 0.0f, 2.0f);
     pa.setVolume(new_vol);
-    val.AddMember("old_volume", rapidjson::Value((int)(100 * vol)), alloc);
-    val.AddMember("new_volume", rapidjson::Value((int)(100 * new_vol)), alloc);
-    val.AddMember("mute", rapidjson::Value(mute), alloc);
+    val.AddMember("old_volume",
+        rapidjson::Value((int)(100 * vol)),
+        work->allocator());
+    val.AddMember("new_volume",
+        rapidjson::Value((int)(100 * new_vol)),
+        work->allocator());
+    val.AddMember("mute",
+        rapidjson::Value(mute),
+        work->allocator());
     return val;
   }
 

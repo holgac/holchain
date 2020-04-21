@@ -18,6 +18,7 @@ public:
     events_.insert(std::make_pair(tp, name));
   }
   std::string str();
+  void join(const Profiler& prof, std::string prefix);
   Profiler& operator+=(const Profiler& prof);
   rapidjson::Value json(rapidjson::Document::AllocatorType& alloc);
 };

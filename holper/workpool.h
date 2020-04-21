@@ -21,37 +21,53 @@ public:
   void run();
 };
 
-struct Work
+struct WorkResult
 {
-  int requestId;
-  const Command* command;
-  const Parameters* parameters;
-  rapidjson::Document::AllocatorType* allocator;
-  std::function<void(rapidjson::Value val, int code)> finish;
-  Profiler* profiler;
+  std::unique_ptr<Work> work;
+  rapidjson::Value result;
+  int code;
+  WorkResult(std::unique_ptr<Work>&& w, rapidjson::Value&& r, int c)
+    : work(std::move(w)), result(std::move(r.Move())), code(c)
+  {}
+};
 
-  void profile(const std::string& event) {
-    if (!profiler) {
-      return;
-    }
-    profiler->event(event);
+class Work
+{
+  int requestId_;
+  const Command* command_;
+  const Parameters parameters_;
+  rapidjson::Document doc_;
+  typedef std::function<void(std::unique_ptr<WorkResult>)> FinishFunction;
+  FinishFunction finish_;
+  Profiler profiler_;
+  rapidjson::Document::AllocatorType* allocator_;
+  friend class WorkPoolWorker;
+
+public:
+  int requestId() const {
+    return requestId_;
+  }
+  rapidjson::Document::AllocatorType& allocator() {
+    return *allocator_;
+  }
+  const Command* command() const {
+    return command_;
+  }
+  const Parameters& parameters() const {
+    return parameters_;
   }
 
-  Work(Request* request,
-      std::function<void(rapidjson::Value val, int code)> onFinish
-  ) : requestId(request->id()), command(request->command()),
-      parameters(&request->parameters()),
-      allocator(&request->response().alloc()),
-      finish(onFinish), profiler(&request->profiler()) {}
+  Profiler& profiler() {
+    return profiler_;
+  }
 
   Work(int id,
       const Command* cmd,
-      const Parameters& params,
+      Parameters&& params,
       rapidjson::Document::AllocatorType& alloc,
-      std::function<void(rapidjson::Value val, int code)> onFinish,
-      Profiler* prof
-  ) : requestId(id), command(cmd), parameters(&params), allocator(&alloc),
-      finish(onFinish), profiler(prof) {}
+      FinishFunction finish
+  ) : requestId_(id), command_(cmd), parameters_(std::move(params)),
+      finish_(finish), allocator_(&alloc) {}
 };
 
 class WorkPool : public Thread<Work>

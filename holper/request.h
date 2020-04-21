@@ -44,11 +44,23 @@ public:
 class Parameters {
   friend class Request;
   std::map<std::string,std::string> parameters_;
-  void set(std::map<std::string,std::string>&& parameters) {
+  std::map<std::string,rapidjson::Value> rawParameters_;
+  void set(std::map<std::string,std::string>&& parameters,
+      std::map<std::string, rapidjson::Value>&& rawParameters) {
     parameters_ = std::move(parameters);
+    rawParameters_ = std::move(rawParameters);
   }
 public:
   Parameters() {}
+  Parameters(Parameters&& p)
+    : parameters_(std::move(p.parameters_)),
+      rawParameters_(std::move(p.rawParameters_)) {}
+
+  Parameters(std::map<std::string,std::string>&& parameters,
+        std::map<std::string, rapidjson::Value>&& rawParameters)
+    : parameters_(std::move(parameters)),
+      rawParameters_(std::move(rawParameters)) {}
+
   const std::map<std::string,std::string>& map() const {
     return parameters_;
   }
@@ -70,6 +82,7 @@ public:
     }
     return std::nullopt;
   }
+  rapidjson::Value& getRaw(const std::string& name, bool* exists = nullptr);
 };
 
 class Request {
@@ -87,14 +100,8 @@ class Request {
   std::unique_ptr<UnixSocket> socket_;
   Response response_;
   Context* context_;
-  Command* command_ = nullptr;
   bool verbose_ = false;
-  std::vector<std::string> commandTokens_;
-  Parameters parameters_;
   void setVerbose(bool verbose);
-  void setCommandTokens(std::vector<std::string>&& command_tokens);
-  void setParameters(std::map<std::string,std::string>&& parameters);
-  void setCommand(Command* command);
 public:
   Request(Context* context, std::unique_ptr<UnixSocket> socket)
       : id_(++idCounter_), profiler_(socket->ctime()),
@@ -110,17 +117,13 @@ public:
   UnixSocket* socket() {
     return socket_.get();
   }
-  Command* command();
-
-  void sendResponse(int code);
-
   Profiler& profiler() {
     return profiler_;
   }
-  const Parameters& parameters() {
-    return parameters_;
-  }
+
   bool verbose() {
     return verbose_;
   }
+
+  void sendResponse(int code);
 };

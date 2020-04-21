@@ -9,38 +9,37 @@
 #include <boost/property_tree/json_parser.hpp>
 
 WorkPoolWorker::WorkPoolWorker(int id, Context* context, WorkPool* workPool)
-    : ThreadBase(St::fmt("WorkPoolWorker%d", id), context),
+    : ThreadBase(St::fmt("Worker%d", id), context),
       workPool_(workPool), id_(id) {}
 
 std::pair<rapidjson::Value, int> WorkPoolWorker::runSingle(Work* work) {
-  work->profile("Received by WorkPoolWorker");
-  context_->logger->info("Will process request %d", work->requestId);
-  auto action = work->command->action();
-  auto format_retval = [&] (const std::string& val, int code) {
+  work->profiler().event("Received by WorkPoolWorker");
+  context_->logger->info("Will process request %d", work->requestId());
+  auto action = work->command()->action();
+  auto form_retval = [&] (const std::string& val, int code) {
     return std::make_pair(
-        rapidjson::Value(val.c_str(), val.size(), *work->allocator),
+        rapidjson::Value(val.c_str(), val.size(), work->allocator()),
         code);
   };
   if (action == nullptr) {
-    return form_retval(work->command->help(), -1);
+    return form_retval(work->command()->help(), -1);
   }
   rapidjson::Value res;
   try {
-    if (auto reason = action->failReason(*work->parameters)) {
+    if (auto reason = action->failReason(work)) {
       context_->logger->info(
         "Request %d would fail: %s%s%s",
-        work->requestId,
+        work->requestId(),
         Consts::TerminalColors::RED,
         reason->c_str(),
         Consts::TerminalColors::DEFAULT);
-      return form_retval(*reason + "\n" + work->command->help(), -1);
+      return form_retval(*reason + "\n" + work->command()->help(), -1);
     }
-    return std::make_pair(action->actOn(*work->parameters, *work->allocator),
-        0);
+    return std::make_pair(action->actOn(work), 0);
   } catch (std::exception& e) {
     context_->logger->info(
       "Request %d failed: %s%s%s",
-      work->requestId,
+      work->requestId(),
       Consts::TerminalColors::RED,
       e.what(),
       Consts::TerminalColors::DEFAULT);
@@ -52,13 +51,14 @@ void WorkPoolWorker::run() {
   while (true) {
     auto work = std::move(workPool_->getWork());
     auto res = runSingle(work.get());
-    work->finish(std::move(res.first.Move()), res.second);
+    work->finish_(std::make_unique<WorkResult>(
+        std::move(work), std::move(res.first.Move()), res.second));
  }
 }
 
 void WorkPool::handleMessage(std::unique_ptr<Work> msg) {
-  msg->profile("Received by WorkPool");
-  context_->logger->info("Received work for request %d", msg->requestId);
+  msg->profiler().event("Received by WorkPool");
+  context_->logger->info("Received work for request %d", msg->requestId());
   auto work = std::make_unique<WorkInternal>(std::move(msg));
   {
     LockMutex lock(&workMutex_);
@@ -78,7 +78,7 @@ std::unique_ptr<Work> WorkPool::getWork() {
   // TODO: do some p50-p95 calculation for wait times
   context_->logger->info(
         "Request %d waited in queue for %s",
-      work->work->requestId,
+      work->work->requestId(),
       (TimePoint() - work->ctime).str().c_str());
   return std::move(work->work);
 }

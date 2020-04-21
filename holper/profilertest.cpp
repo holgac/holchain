@@ -62,19 +62,19 @@ TEST_F(ProfilerTest, combine) {
   event("start");
   fastForward(1.0);
   event("end");
-  ffp.event("ffp_start");
+  ffp.event("start2");
   ffp.fastForward(1.0);
-  ffp.event("ffp_end");
-  profiler.profiler += ffp.profiler;
+  ffp.event("end2");
+  profiler.profiler.join(ffp.profiler, "ffp_");
   auto ev = events();
   ASSERT_EQ(ev.size(), 4);
   EXPECT_STREQ(ev[0].first.c_str(), "start");
   EXPECT_NEAR(ev[0].second, 0.0, 0.0001);
-  EXPECT_STREQ(ev[1].first.c_str(), "ffp_start");
+  EXPECT_STREQ(ev[1].first.c_str(), "ffp_start2");
   EXPECT_NEAR(ev[1].second, 0.5, 0.0001);
   EXPECT_STREQ(ev[2].first.c_str(), "end");
   EXPECT_NEAR(ev[2].second, 1.0, 0.0001);
-  EXPECT_STREQ(ev[3].first.c_str(), "ffp_end");
+  EXPECT_STREQ(ev[3].first.c_str(), "ffp_end2");
   EXPECT_NEAR(ev[3].second, 1.5, 0.0001);
 }
 

@@ -1,12 +1,13 @@
 #include "music.h"
 #include "holper.h"
-#include <unistd.h>
-#include <fcntl.h>
 #include "sdbus.h"
 #include "command.h"
 #include "logger.h"
 #include "context.h"
 #include "string.h"
+#include "workpool.h"
+#include <unistd.h>
+#include <fcntl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 
@@ -25,15 +26,13 @@ public:
       : Action(context), method_(method), spawnOnFailure_(spawn) {}
 
 protected:
-  std::optional<std::string> failReason(
-      const Parameters& params) const override {
-    if (!params.map().empty()) {
+  std::optional<std::string> failReason(Work* work) const override {
+    if (!work->parameters().map().empty()) {
       return method_ + " takes no parameter";
     }
     return std::nullopt;
   }
-  rapidjson::Value actOn(const Parameters& UNUSED(params),
-      rapidjson::Document::AllocatorType& UNUSED(alloc)) const override {
+  rapidjson::Value actOn(Work* UNUSED(work)) const override {
     SDBus bus(kSpotifyService, kSpotifyObject, kSpotifyIFace, true);
     try {
       bus.call(method_.c_str());

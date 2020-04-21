@@ -38,6 +38,7 @@ Response& Response::set(std::string key, std::nullptr_t UNUSED(value)) {
       alloc());
   return *this;
 }
+
 Response& Response::set(std::string key, rapidjson::Value& value) {
   value_.AddMember(
       rapidjson::Value(key.c_str(), key.size(), alloc()),
@@ -46,12 +47,29 @@ Response& Response::set(std::string key, rapidjson::Value& value) {
   return *this;
 }
 
+rapidjson::Value& Parameters::getRaw(const std::string& name, bool* exists) {
+  // ugh
+  static rapidjson::Value dummy;
+  auto it = rawParameters_.find(name);
+  if (it == rawParameters_.end()) {
+    if (exists) {
+      *exists = false;
+    }
+    return dummy;
+  }
+  if (exists) {
+    *exists = true;
+  }
+  return it->second;
+}
+
 void Request::sendResponse(int code) {
   profiler_.event("sendResponse called");
   response_.set("code", code);
   if (verbose_) {
     response_.set("profiler", profiler_.json(response_.alloc()).Move());
   }
+  response_.set("id", id_);
   std::string msg = response_.serialize();
   profiler_.event("Write started");
   socket_->write(msg);
@@ -68,23 +86,9 @@ void Request::sendResponse(int code) {
   );
   socket_.reset(nullptr);
 }
+
 void Request::setVerbose(bool verbose) {
   verbose_ = verbose;
-}
-void Request::setCommandTokens(std::vector<std::string>&& command_tokens) {
-  commandTokens_ = std::move(command_tokens);
-}
-void Request::setParameters(std::map<std::string, std::string>&& parameters) {
-  parameters_.set(std::move(parameters));
-}
-void Request::setCommand(Command* command) {
-  if (command == nullptr) {
-    THROW("Request %d got null command somehow", id_);
-  }
-  command_ = command;
-}
-Command* Request::command() {
-  return command_;
 }
 
 Request::~Request() {

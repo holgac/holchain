@@ -26,9 +26,8 @@ rapidjson::Value Profiler::json(rapidjson::Document::AllocatorType& alloc) {
   return val;
 }
 
-Profiler& Profiler::operator+=(const Profiler& prof) {
+void Profiler::join(const Profiler& prof, std::string prefix) {
   for (const auto& prof_event : prof.events_) {
-    event(prof_event.second, prof_event.first);
+    event(prefix + prof_event.second, prof_event.first);
   }
-  return *this;
 }

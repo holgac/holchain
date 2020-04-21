@@ -4,6 +4,7 @@
 #include "context.h"
 #include <memory>
 
+class WorkResult;
 
 struct ResolverArgs {
   std::unique_ptr<Request> request;
@@ -15,8 +16,9 @@ class Resolver : public Thread<ResolverArgs>
 {
 private:
   void sendToResponder(Request* request,
-      rapidjson::Value response, int code);
+      std::unique_ptr<WorkResult> result);
 public:
   explicit Resolver(Context* context) : Thread("Resolver", context) {}
+  ~Resolver() {}
   void handleMessage(std::unique_ptr<ResolverArgs> msg) override;
 };

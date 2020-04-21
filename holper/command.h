@@ -11,6 +11,7 @@ class Context;
 class Request;
 class Response;
 class Parameters;
+class Work;
 
 class Action
 {
@@ -18,9 +19,8 @@ protected:
   Context* context_;
 public:
   Action(Context* context) : context_(context) {}
-  virtual std::optional<std::string> failReason(const Parameters&) const = 0;
-  virtual rapidjson::Value actOn(const Parameters&,
-      rapidjson::Document::AllocatorType&) const = 0;
+  virtual std::optional<std::string> failReason(Work* work) const = 0;
+  virtual rapidjson::Value actOn(Work* work) const = 0;
   virtual std::string help() const = 0;
 };
 

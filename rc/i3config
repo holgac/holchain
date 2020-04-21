@@ -176,7 +176,7 @@ set $mode_system "(l)ock, l(o)gout, (s)uspend, (h)ibernate, (r)eboot, (S)hutdown
 mode $mode_system {
     bindsym l exec --no-startup-id i3helper prompt "i3helper lock", mode "default"
     bindsym o exec --no-startup-id i3helper prompt "i3helper logout", mode "default"
-    bindsym s exec --no-startup-id i3helper prompt "i3helper suspend", mode "default"
+    bindsym s exec --no-startup-id holper system suspend, mode "default"
     bindsym h exec --no-startup-id i3helper prompt "i3helper hibernate", mode "default"
     bindsym r exec --no-startup-id i3helper prompt "i3helper reboot", mode "default"
     bindsym Shift+s exec --no-startup-id i3helper prompt "i3helper shutdown", mode "default"
@@ -248,5 +248,4 @@ bindsym $mod+Mod1+t exec i3-input -l 3 -F 'exec i3helper timer "%s"' -P 'Set tim
 
 exec_always --no-startup-id nm-applet --sm-disable
 exec_always --no-startup-id blueman-applet
-exec --no-startup-id pulseaudio -D
 exec xrandr --output eDP-1 --mode '1920x1080'

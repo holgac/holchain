@@ -11,11 +11,14 @@
 #include <map>
 
 void Resolver::sendToResponder(Request* request,
-    rapidjson::Value response, int code) {
+    std::unique_ptr<WorkResult> result) {
   // This runs in worker threads
   context_->logger->info("Sending request %d to responder", request->id());
+  request->profiler().join(result->work->profiler(), "Work.");
   context_->responder->sendMessage(std::make_unique<ResponderArgs>(
-        std::unique_ptr<Request>(request), response, code));
+        std::unique_ptr<Request>(request),
+        std::move(result->result.Move()),
+        result->code));
 }
 
 void Resolver::handleMessage(std::unique_ptr<ResolverArgs> msg) {
@@ -31,25 +34,34 @@ void Resolver::handleMessage(std::unique_ptr<ResolverArgs> msg) {
   for ( auto& val : doc["command"].GetArray() ) {
     command_tokens.push_back(std::string(val.GetString(), val.GetStringLength()));
   }
-  std::map<std::string, std::string> parameters;
+  std::map<std::string, std::string> str_parameters;
+  std::map<std::string, rapidjson::Value> raw_parameters;
   for ( auto& val : doc["parameters"].GetObject() ) {
     auto& name = val.name;
     auto& value = val.value;
-    parameters.insert(std::make_pair<std::string, std::string>(
-          std::move(std::string(name.GetString(), name.GetStringLength())),
-          std::move(std::string(value.GetString(), value.GetStringLength()))));
+    if (value.IsString()) {
+      str_parameters.insert(std::make_pair<std::string, std::string>(
+            std::move(std::string(name.GetString(), name.GetStringLength())),
+            std::move(std::string(value.GetString(), value.GetStringLength()))));
+    } else {
+      raw_parameters.insert(std::make_pair<std::string, rapidjson::Value>(
+        std::move(std::string(name.GetString(), name.GetStringLength())),
+        std::move(value.Move())
+      ));
+    }
   }
+  Parameters parameters(std::move(str_parameters), std::move(raw_parameters));
   request->profiler().event("Payload json parsed");
-  request->setCommand(
-      context_->commandManager->resolveCommand(command_tokens));
-  request->setCommandTokens(std::move(command_tokens));
-  request->setParameters(std::move(parameters));
+  auto work = std::make_unique<Work>(request->id(),
+      context_->commandManager->resolveCommand(command_tokens),
+      std::move(parameters),
+      request->response().alloc(),
+      std::bind(&Resolver::sendToResponder, this, request.get(),
+          std::placeholders::_1));
   request->profiler().event("Resolved command");
   context_->logger->info("Request %d will run %s",
       request->id(),
-      request->command()->name().c_str());
-  auto req_ptr = request.release();
-  context_->workPool->sendMessage(std::make_unique<Work>(req_ptr,
-      std::bind(&Resolver::sendToResponder, this, req_ptr,
-          std::placeholders::_1, std::placeholders::_2)));
+      work->command()->name().c_str());
+  context_->workPool->sendMessage(std::move(work));
+  request.release();
 }

@@ -55,6 +55,7 @@ int main(int argc, char** argv) {
   context.logger.reset(new Logger(
         client_verbose ? Logger::DEBUG : Logger::MUSTFIX));
   context.logger->addTarget(std::make_unique<FDLogTarget>(STDERR_FILENO, false));
+  context.logger->addTarget(std::make_unique<InMemoryLogTarget>(1000));
   profiler.event("Read program options");
   rapidjson::Document document;
   auto& alloc = document.GetAllocator();

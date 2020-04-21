@@ -36,6 +36,39 @@ public:
   }
 };
 
+class InMemoryLogTarget : public LogTarget
+{
+private:
+  std::vector<std::string> logs_;
+  size_t index_ = 0;
+  size_t logCount_ = 0;
+public:
+  std::vector<std::string> getLogs() {
+    std::vector<std::string> vec;
+    vec.reserve(logs_.size());
+    if (logCount_ > index_) {
+      for (size_t i = index_; i < logs_.size(); ++i) {
+        vec.push_back(logs_[i]);
+      }
+    }
+    for (size_t i = 0; i < index_; ++i) {
+      vec.push_back(logs_[i]);
+    }
+    return vec;
+  }
+
+  InMemoryLogTarget(size_t size) : logs_(size) {
+  }
+
+  ~InMemoryLogTarget(){}
+
+  void write(const char* str, size_t size) override {
+    logs_[index_] = std::string(str, size);
+    index_ = (index_ + 1) % logs_.size();
+    logCount_ += 1;
+  }
+};
+
 class Logger;
 
 class LogLine {
