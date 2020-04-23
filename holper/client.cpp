@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
     printf("  -v: Verbose (client)\n");
     exit(code);
   };
-  while ((opt = getopt(argc, argv, "+ds:o:vV:h")) != -1) {
+  while ((opt = getopt(argc, argv, "+ds:o:vVh")) != -1) {
     switch(opt) {
       case 'd':
         socket_path = dev_socket_path;

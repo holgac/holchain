@@ -176,7 +176,7 @@ set $mode_system "(l)ock, l(o)gout, (s)uspend, (h)ibernate, (r)eboot, (S)hutdown
 mode $mode_system {
     bindsym l exec --no-startup-id i3helper prompt "i3helper lock", mode "default"
     bindsym o exec --no-startup-id i3helper prompt "i3helper logout", mode "default"
-    bindsym s exec --no-startup-id holper system suspend, mode "default"
+    bindsym s exec --no-startup-id holper -v system suspend, mode "default"
     bindsym h exec --no-startup-id i3helper prompt "i3helper hibernate", mode "default"
     bindsym r exec --no-startup-id i3helper prompt "i3helper reboot", mode "default"
     bindsym Shift+s exec --no-startup-id i3helper prompt "i3helper shutdown", mode "default"
@@ -195,10 +195,10 @@ bindsym $mod+v exec --no-startup-id i3helper paste, mode "default"
 
 set $mode_multimedia "(p)lay/pause (s)top (n)ext (b)prev (e)light (w)nol p(a)ssword"
 mode $mode_multimedia {
-    bindsym p exec --no-startup-id holper music playpause
-    bindsym s exec --no-startup-id holper music pause
-    bindsym n exec --no-startup-id holper music next
-    bindsym b exec --no-startup-id holper music prev
+    bindsym p exec --no-startup-id holper -v music playpause
+    bindsym s exec --no-startup-id holper -v music pause
+    bindsym n exec --no-startup-id holper -v music next
+    bindsym b exec --no-startup-id holper -v music prev
     bindsym w exec --no-startup-id brightnessctl -d tpacpi::kbd_backlight set 0, mode "default"
     bindsym e exec --no-startup-id brightnessctl -d tpacpi::kbd_backlight set 1, mode "default"
     bindsym a exec --no-startup-id pwgen -yBnc 16 1 | xsel -ib, mode "default"
@@ -210,31 +210,31 @@ mode $mode_multimedia {
 bindsym $mod+o mode $mode_multimedia
 
 # f1
-bindsym XF86AudioMute exec holper vol -- mute
-bindsym Shift+XF86AudioMute exec holper music playpause
+bindsym XF86AudioMute exec holper -v vol -- mute
+bindsym Shift+XF86AudioMute exec holper -v music playpause
 
 # f2
-bindsym XF86AudioRaiseVolume exec holper vol -- incr:5
-bindsym $mod+XF86AudioRaiseVolume exec holper vol -- incr:15
-bindsym Shift+XF86AudioRaiseVolume exec holper music next
+bindsym XF86AudioRaiseVolume exec holper -v vol -- incr:5
+bindsym $mod+XF86AudioRaiseVolume exec holper -v vol -- incr:15
+bindsym Shift+XF86AudioRaiseVolume exec holper -v music next
 
 # f3
-bindsym XF86AudioLowerVolume exec holper vol -- incr:-5
-bindsym $mod+XF86AudioLowerVolume exec holper vol -- incr:-15
-bindsym Shift+XF86AudioLowerVolume exec holper music prev
+bindsym XF86AudioLowerVolume exec holper -v vol -- incr:-5
+bindsym $mod+XF86AudioLowerVolume exec holper -v vol -- incr:-15
+bindsym Shift+XF86AudioLowerVolume exec holper -v music prev
 
 # f4
-# bindsym XF86AudioMicMute exec holper
+# bindsym XF86AudioMicMute exec holper -v
 
 # f5
-bindsym XF86MonBrightnessDown exec holper display brightness -- incr:-5
-bindsym $mod+XF86MonBrightnessDown exec holper display brightness -- incr:-15
-bindsym Shift+XF86MonBrightnessDown brightnessctl -d tpacpi::kbd_backlight set 0
+bindsym XF86MonBrightnessDown exec holper -v display brightness -- incr:-5
+bindsym $mod+XF86MonBrightnessDown exec holper -v display brightness -- incr:-15
+bindsym Shift+XF86MonBrightnessDown exec brightnessctl -d tpacpi::kbd_backlight set 0
 
 # f6
-bindsym XF86MonBrightnessUp exec holper display brightness -- incr:5
-bindsym $mod+XF86MonBrightnessUp exec holper display brightness -- incr:15
-bindsym Shift+XF86MonBrightnessUp brightnessctl -d tpacpi::kbd_backlight set 1
+bindsym XF86MonBrightnessUp exec holper -v display brightness -- incr:5
+bindsym $mod+XF86MonBrightnessUp exec holper -v display brightness -- incr:15
+bindsym Shift+XF86MonBrightnessUp exec brightnessctl -d tpacpi::kbd_backlight set 1
 
 bindsym --release Print exec i3helper screenshot
 

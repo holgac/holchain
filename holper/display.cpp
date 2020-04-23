@@ -7,7 +7,7 @@
 #include "request.h"
 #include "exception.h"
 #include "workpool.h"
-#include <fstream>
+#include "filesystem.h"
 #include <algorithm>
 #include <X11/Xatom.h>
 #include <X11/Xlib.h>
@@ -68,14 +68,8 @@ protected:
     auto& params = work->parameters();
     // TODO: helpers for reading sys files
     int max_raw_brightness, raw_brightness;
-    {
-      std::ifstream max_brightness_file(kBrightnessPath + "/max_brightness");
-      max_brightness_file >> max_raw_brightness;
-    }
-    {
-      std::ifstream brightness_file(kBrightnessPath + "/brightness");
-      brightness_file >> raw_brightness;
-    }
+    Fs::parse(kBrightnessPath + "/max_brightness", "%d", &max_raw_brightness);
+    Fs::parse(kBrightnessPath + "/brightness", "%d", &raw_brightness);
     float brightness = raw_brightness * 1.0f / max_raw_brightness;
     float new_brightness = brightness;
     if (auto incr = params.get<int>("incr")) {
@@ -86,15 +80,12 @@ protected:
     new_brightness = std::clamp(new_brightness, 0.0f, 1.0f);
     if (brightness < 0.001f && new_brightness > brightness) {
       setScreenPower(true);
-    } else if (new_brightness < .001f && new_brightness < brightness) {
+    } else if (new_brightness < .001f && new_brightness < (brightness + 0.001f)) {
       new_brightness = 0.0f;
       setScreenPower(false);
     }
-    {
-      std::ofstream brightness_file(kBrightnessPath + "/brightness");
-      raw_brightness = new_brightness * max_raw_brightness;
-      brightness_file << raw_brightness;
-    }
+    raw_brightness = new_brightness * max_raw_brightness;
+    Fs::dump(kBrightnessPath + "/brightness", "%d", raw_brightness);
     rapidjson::Value val(rapidjson::kObjectType);
     val.AddMember("old_brightness",
         rapidjson::Value(brightness),

@@ -31,9 +31,11 @@ build server.o: cc server.cpp
 build resolver.o: cc resolver.cpp
 build system.o: cc system.cpp
 build responder.o: cc responder.cpp
+build filesystem.o: cc filesystem.cpp
 build server: ld server.o string.o socket.o consts.o logger.o $
   time.o request.o thread.o resolver.o profiler.o commandmanager.o command.o $
-  workpool.o info.o display.o pulse.o music.o system.o responder.o
+  workpool.o info.o display.o pulse.o music.o system.o responder.o $
+  filesystem.o
 build loggertest.o: cc loggertest.cpp
 build stringtest.o: cc stringtest.cpp
 build profilertest.o: cc profilertest.cpp
