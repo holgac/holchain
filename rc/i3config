@@ -195,12 +195,6 @@ bindsym $mod+v exec --no-startup-id i3helper paste, mode "default"
 
 set $mode_multimedia "(p)lay/pause (s)top (n)ext (b)prev (e)light (w)nol p(a)ssword"
 mode $mode_multimedia {
-    bindsym p exec --no-startup-id holper -v music playpause
-    bindsym s exec --no-startup-id holper -v music pause
-    bindsym n exec --no-startup-id holper -v music next
-    bindsym b exec --no-startup-id holper -v music prev
-    bindsym w exec --no-startup-id brightnessctl -d tpacpi::kbd_backlight set 0, mode "default"
-    bindsym e exec --no-startup-id brightnessctl -d tpacpi::kbd_backlight set 1, mode "default"
     bindsym a exec --no-startup-id pwgen -yBnc 16 1 | xsel -ib, mode "default"
     # back to normal: Enter or Escape
     bindsym Return mode "default"
@@ -229,12 +223,12 @@ bindsym Shift+XF86AudioLowerVolume exec holper -v music prev
 # f5
 bindsym XF86MonBrightnessDown exec holper -v display brightness -- incr:-5
 bindsym $mod+XF86MonBrightnessDown exec holper -v display brightness -- incr:-15
-bindsym Shift+XF86MonBrightnessDown exec brightnessctl -d tpacpi::kbd_backlight set 0
+bindsym Shift+XF86MonBrightnessDown exec holper -v display keyboard_backlight -- incr:-1
 
 # f6
 bindsym XF86MonBrightnessUp exec holper -v display brightness -- incr:5
 bindsym $mod+XF86MonBrightnessUp exec holper -v display brightness -- incr:15
-bindsym Shift+XF86MonBrightnessUp exec brightnessctl -d tpacpi::kbd_backlight set 1
+bindsym Shift+XF86MonBrightnessUp exec holper -v display keyboard_backlight -- incr:1
 
 bindsym --release Print exec i3helper screenshot
 

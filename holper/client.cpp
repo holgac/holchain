@@ -24,6 +24,7 @@ int main(int argc, char** argv) {
     printf("Holper client - Forms commands and sends to holper server\n");
     printf("Options:\n");
     printf("  -h: Print this message and exit\n");
+    printf("  -r: Restart daemon\n");
     printf("  -d: Development mode (socket path: %s and verbose)\n",
         dev_socket_path.c_str());
     printf("  -s [PATH]: Use provided unix socket path (default: %s)\n",
@@ -32,7 +33,8 @@ int main(int argc, char** argv) {
     printf("  -v: Verbose (client)\n");
     exit(code);
   };
-  while ((opt = getopt(argc, argv, "+ds:o:vVh")) != -1) {
+  bool restart_daemon = false;
+  while ((opt = getopt(argc, argv, "+dhrs:vV")) != -1) {
     switch(opt) {
       case 'd':
         socket_path = dev_socket_path;
@@ -47,6 +49,9 @@ int main(int argc, char** argv) {
       case 'V':
         server_verbose = true;
         break;
+      case 'r':
+        restart_daemon = true;
+        break;
       case 'h':
       default:
         printHelpAndExit(opt=='h' ? 0 : -1);
@@ -56,6 +61,13 @@ int main(int argc, char** argv) {
         client_verbose ? Logger::DEBUG : Logger::MUSTFIX));
   context.logger->addTarget(std::make_unique<FDLogTarget>(STDERR_FILENO, false));
   context.logger->addTarget(std::make_unique<InMemoryLogTarget>(1000));
+  if (restart_daemon) {
+    int res = execl("/usr/bin/systemctl", "/usr/bin/systemctl", "--user",
+        "restart", "holper", NULL);
+    context.logger->logErrno("systemctl exec failed");
+    return res;
+  }
+
   profiler.event("Read program options");
   rapidjson::Document document;
   auto& alloc = document.GetAllocator();
@@ -68,7 +80,7 @@ int main(int argc, char** argv) {
       i++;
       break;
     }
-    command.PushBack(rapidjson::Value(argv[i], strlen(argv[i])), alloc); 
+    command.PushBack(rapidjson::Value(argv[i], strlen(argv[i])), alloc);
   }
   root.AddMember("command", command, alloc);
   rapidjson::Value parameters(rapidjson::kObjectType);
