@@ -13,16 +13,17 @@
 #include <X11/Xlib.h>
 #include <X11/extensions/Xrandr.h>
 #include <X11/extensions/dpms.h>
+#include <typeinfo>
 
 class BrightnessChangeAction : public Action {
   const std::string kBrightnessPath = "/sys/class/backlight/amdgpu_bl0";
   void setScreenPower(bool val) const {
     context_->logger->info("Turning display %s", val ? "on" : "off");
-    Display *dpy;
-    dpy = XOpenDisplay(NULL);
+    Display *dpy = XOpenDisplay(NULL);
     int dummy;
     if (!DPMSQueryExtension(dpy, &dummy, &dummy)) {
       context_->logger->error("no DPMS extension");
+      XCloseDisplay(dpy);
       THROW("No DPMS extension - cannot turn display off");
     }
     CARD16 timeout;
@@ -39,29 +40,6 @@ class BrightnessChangeAction : public Action {
   }
 public:
   BrightnessChangeAction(Context* context) : Action(context) {}
-protected:
-  std::optional<std::string> failReason(Work* work) const override {
-    auto& params = work->parameters();
-    int opcnt = 0;
-    bool exists;
-    // TODO: validator
-    if (!params.get<int>("incr", &exists) && exists) {
-      return St::fmt("incr value not int: %s",
-          params.get<std::string>("incr")->c_str());
-    }
-    opcnt += (int)exists;
-    if (!params.get<int>("set", &exists) && exists) {
-      return St::fmt("set value not int: %s",
-          params.get<std::string>("set")->c_str());
-    }
-    opcnt += (int)exists;
-    if (opcnt == 0) {
-      return "No operation was specified";
-    } else if (opcnt > 1) {
-      return "Got multiple operations";
-    }
-    return std::nullopt;
-  }
   rapidjson::Value actOn(Work* work) const override {
     auto& params = work->parameters();
     // TODO: helpers for reading sys files
@@ -94,10 +72,11 @@ protected:
     return val;
   }
 
-  std::string help() const override {
-    return "  Arguments:\n"
-      "    incr:[AMOUNT]: increase brightness by amount\n"
-      "    set:[VALUE]: set brightness to value\n";
+  void spec(ParamSpec& spec) const override {
+    spec
+      .param<int>("set", "operations", "sets brightness to value")
+      .param<int>("incr", "operations", "increments brightness by value")
+      .key("operations", 1, 1);
   }
 };
 
@@ -105,44 +84,22 @@ class KeyboardBacklightAction : public Action {
   const std::string kPath = "/sys/class/leds/tpacpi::kbd_backlight";
 public:
   KeyboardBacklightAction(Context* context) : Action(context) {}
-protected:
-  std::optional<std::string> failReason(Work* work) const override {
-    auto& params = work->parameters();
-    int opcnt = 0;
-    bool exists;
-    // TODO: validator
-    if (!params.get<std::nullptr_t>("on", &exists) && exists) {
-      return St::fmt("on parameter has value: %s",
-          params.get<std::string>("on")->c_str());
-    }
-    opcnt += (int)exists;
-    if (!params.get<std::nullptr_t>("off", &exists) && exists) {
-      return St::fmt("off parameter has value: %s",
-          params.get<std::string>("off")->c_str());
-    }
-    opcnt += (int)exists;
-    if (!params.get<std::nullptr_t>("toggle", &exists) && exists) {
-      return St::fmt("toggle parameter has value: %s",
-          params.get<std::string>("toggle")->c_str());
-    }
-    opcnt += (int)exists;
-    if (!params.get<int>("set", &exists) && exists) {
-      return St::fmt("set value not int: %s",
-          params.get<std::string>("set")->c_str());
-    }
-    opcnt += (int)exists;
-    if (!params.get<int>("incr", &exists) && exists) {
-      return St::fmt("incr value not int: %s",
-          params.get<std::string>("incr")->c_str());
-    }
-    opcnt += (int)exists;
-    if (opcnt == 0) {
-      return "No operation was specified";
-    } else if (opcnt > 1) {
-      return "Got multiple operations";
-    }
-    return std::nullopt;
+  void spec(ParamSpec& spec) const override {
+    auto help = [](const std::string& pre, const std::string& post) {
+      if (post.empty()) {
+        return pre + " keyboard backlight";
+      }
+      return pre + " keyboard backlight " + post;
+    };
+    spec
+      .param<std::nullptr_t>("on", "operations", help("turns", "on"))
+      .param<std::nullptr_t>("off", "operations", help("turns", "off"))
+      .param<std::nullptr_t>("toggle", "operations", help("toggles", ""))
+      .param<int>("set", "operations", help("sets", "to value"))
+      .param<int>("incr", "operations", help("increments ", "by value"))
+      .key("operations", 1, 1);
   }
+
   rapidjson::Value actOn(Work* work) const override {
     auto& params = work->parameters();
     int max_brightness, brightness;
@@ -169,14 +126,6 @@ protected:
         rapidjson::Value(brightness),
         work->allocator());
     return val;
-  }
-
-  std::string help() const override {
-    return "  Arguments:\n"
-      "    on: turns keyboard backlight on\n"
-      "    off: turns keyboard backlight off\n"
-      "    toggle: toggles keyboard backlight\n"
-      "    set:[VALUE]: set keyboard backlight to value\n";
   }
 };
 

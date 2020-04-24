@@ -11,6 +11,12 @@ bool StringUtils::to(const std::string& str, int& val) {
 }
 
 template <>
+bool StringUtils::to(const std::string& str, float& val) {
+  char tmp;
+  return sscanf(str.c_str(), "%f%c", &val, &tmp) == 1;
+}
+
+template <>
 bool StringUtils::to(const std::string& str, std::string& val) {
   val = str;
   return true;
@@ -42,4 +48,24 @@ std::string StringUtils::errorString() {
 std::string StringUtils::errorString(int err) {
   char errbuf[1024];
   return std::string(strerror_r(err, errbuf, 1024));
+}
+
+template <>
+std::string StringUtils::to<int>() {
+  return "number";
+}
+
+template <>
+std::string StringUtils::to<std::nullptr_t>() {
+  return "none";
+}
+
+template <>
+std::string StringUtils::to<float>() {
+  return "float";
+}
+
+template <>
+std::string StringUtils::to<std::string>() {
+  return "string";
 }

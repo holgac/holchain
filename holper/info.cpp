@@ -10,13 +10,9 @@
 
 class StatsAction : public Action
 {
-protected:
-  std::optional<std::string> failReason(Work* work) const override {
-    auto& params = work->parameters();
-    if (!params.map().empty()) {
-      return "Stats action takes no parameter";
-    }
-    return std::nullopt;
+public:
+  void spec(ParamSpec& UNUSED(spec)) const override {
+    return;
   }
   rapidjson::Value actOn(Work* work) const override {
     auto& alloc = work->allocator();
@@ -30,10 +26,6 @@ protected:
         rapidjson::Value(st.c_str(), st.size(), alloc), alloc);
     return val;
   }
-  std::string help() const override {
-    return "";
-  }
-public:
   StatsAction(Context* context) : Action(context) {}
 };
 

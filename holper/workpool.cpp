@@ -26,7 +26,10 @@ std::pair<rapidjson::Value, int> WorkPoolWorker::runSingle(Work* work) {
   }
   rapidjson::Value res;
   try {
-    if (auto reason = action->failReason(work)) {
+    ParamSpec ps(work->parameters(), true);
+    action->spec(ps);
+    work->profiler().event("Validated with parameter spec");
+    if (auto reason = ps.failReason()) {
       context_->logger->info(
         "Request %d would fail: %s%s%s",
         work->requestId(),

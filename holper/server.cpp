@@ -15,6 +15,7 @@
 #include "pulse.h"
 #include "music.h"
 #include "system.h"
+#include "clipboard.h"
 #include <memory>
 #include <string>
 #include <cstdio>
@@ -127,6 +128,7 @@ int main(int argc, char** argv) {
   context.commandManager->registerCommandGroup<PulseCommandGroup>();
   context.commandManager->registerCommandGroup<MusicCommandGroup>();
   context.commandManager->registerCommandGroup<SystemCommandGroup>();
+  context.commandManager->registerCommandGroup<ClipboardCommandGroup>();
   context.workPool.reset(new WorkPool(&context, worker_threads));
   context.workPool->start();
   Server server(&context, socket_path);

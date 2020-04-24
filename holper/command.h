@@ -12,6 +12,7 @@ class Request;
 class Response;
 class Parameters;
 class Work;
+class ParamSpec;
 
 class Action
 {
@@ -19,9 +20,8 @@ protected:
   Context* context_;
 public:
   Action(Context* context) : context_(context) {}
-  virtual std::optional<std::string> failReason(Work* work) const = 0;
+  virtual void spec(ParamSpec& spec) const = 0;
   virtual rapidjson::Value actOn(Work* work) const = 0;
-  virtual std::string help() const = 0;
 };
 
 class Command final

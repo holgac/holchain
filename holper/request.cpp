@@ -94,3 +94,40 @@ void Request::setVerbose(bool verbose) {
 Request::~Request() {
   context_->logger->info("Request %d destroyed", id_);
 }
+
+std::string ParamSpec::help() {
+  if (paramSpecs_.empty()) {
+    return "Takes no arguments";
+  }
+  std::stringstream ss;
+  ss << "Arguments:\n";
+  for (const auto& spec : paramSpecs_) {
+    ss << "  " << spec.name;
+    if (spec.type != "none") {
+      ss << ":VALUE(" << spec.type << ")";
+    }
+    ss << ": " << spec.help << "\n";
+  }
+  for (const auto& [name, minmax] : keyRestrictions_) {
+    int min = minmax.first, max = minmax.second;
+    if (min == 1 && max == 1) {
+      ss << "Must have one of:";
+    } else if (min == 0 && max == 1) {
+      ss << "Must have at most one of:";
+    } else if (min == 1 && max == -1) {
+      ss << "Must have at least one of:";
+    } else if (max == -1) {
+      ss << "Must have at least " << min << " of:";
+    } else if (min == 0 && max == -1) {
+      ss << "Must have zero or more of:";
+    } else {
+      ss << "Must have at least " << min << " and at most " << max << "of:";
+    }
+    for (const auto& spec : paramSpecs_) {
+      if (spec.keys.find(name) != spec.keys.end()) {
+        ss << " " << spec.name;
+      }
+    }
+  }
+  return ss.str();
+}

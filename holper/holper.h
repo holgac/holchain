@@ -2,7 +2,10 @@
 
 #define TO_STRING(s) TO_STRING2(s)
 #define TO_STRING2(s) #s
-#define RANDOMNAME(prefix) prefix ## _ ## __LINE__
+
+#define COMBINE(a,b) COMBINE2(a,b)
+#define COMBINE2(a,b) a##b
+#define RANDOMNAME(prefix) COMBINE(prefix, __LINE__)
 
 #define HOLPER_VERSION_MAJOR 0
 #define HOLPER_VERSION_MINOR 1

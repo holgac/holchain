@@ -88,7 +88,9 @@ std::string Command::help() const {
     ss << "\n";
   }
   if (action_) {
-    ss << action_->help();
+    ParamSpec ps(Parameters({}, {}), false);
+    action_->spec(ps);
+    ss << ps.help();
     return ss.str();
   }
   ss << "Subcommands:\n";

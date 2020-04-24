@@ -11,7 +11,7 @@
 UnixSocket::UnixSocket(Context* context, const std::string& path)
   : path_(path), context_(context)
 {
-  socket_ = socket(AF_UNIX, SOCK_STREAM, 0);
+  socket_ = socket(AF_UNIX, SOCK_STREAM | SOCK_CLOEXEC, 0);
   if (socket_ == -1) {
     THROW("Cannot create unix socket: %s", StringUtils::errorString().c_str());
   }

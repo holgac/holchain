@@ -173,41 +173,13 @@ public:
 
 class VolumeAction : public Action
 {
-protected:
-  std::string help() const override {
-    return "  Arguments:\n"
-      "    incr:[AMOUNT}: increase volume by amount\n"
-      "    set:[VALUE}: set volume to value\n"
-      "    mute: mute/unmute the sink\n";
-  }
-
-  std::optional<std::string> failReason(Work* work) const override {
-    auto& params = work->parameters();
-    int opcnt = 0;
-    bool exists;
-    // TODO: validator
-    if (!params.get<int>("incr", &exists) && exists) {
-      return St::fmt("incr value not int: %s",
-          params.get<std::string>("incr")->c_str());
-    }
-    opcnt += (int)exists;
-    if (!params.get<int>("set", &exists) && exists) {
-      return St::fmt("set value not int: %s",
-          params.get<std::string>("set")->c_str());
-    }
-    opcnt += (int)exists;
-    if (!params.get<nullptr_t>("mute", &exists) && exists) {
-      return St::fmt("mute should have no value: %s",
-          params.get<std::string>("mute")->c_str());
-    }
-    opcnt += (int)exists;
-    if (opcnt == 0) {
-      return "No operation was specified";
-    }
-    if (opcnt > 1) {
-      return "Got multiple operations";
-    }
-    return std::nullopt;
+public:
+  void spec(ParamSpec& spec) const override {
+    spec
+      .param<int>("set", "operations", "sets volume to value")
+      .param<int>("incr", "operations", "increments volume by value")
+      .param<std::nullptr_t>("mute", "operations", "Toggles mute/unmute")
+      .key("operations", 1, 1);
   }
 
   rapidjson::Value actOn(Work* work) const override {
@@ -244,7 +216,6 @@ protected:
     return val;
   }
 
-public:
   VolumeAction(Context* context) : Action(context) {}
 };
 

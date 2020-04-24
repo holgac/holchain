@@ -31,6 +31,8 @@ namespace StringUtils {
       vec.push_back(t);
     }
   }
+  template <typename T>
+  std::string to();
 }
 
 namespace St = StringUtils;

@@ -25,13 +25,10 @@ public:
   SpotifyAction(Context* context, std::string method, bool spawn = false)
       : Action(context), method_(method), spawnOnFailure_(spawn) {}
 
-protected:
-  std::optional<std::string> failReason(Work* work) const override {
-    if (!work->parameters().map().empty()) {
-      return method_ + " takes no parameter";
-    }
-    return std::nullopt;
+  void spec(ParamSpec& UNUSED(spec)) const override {
+    return;
   }
+
   rapidjson::Value actOn(Work* UNUSED(work)) const override {
     SDBus bus(kSpotifyService, kSpotifyObject, kSpotifyIFace, true);
     try {
@@ -77,9 +74,6 @@ protected:
       }
     }
     return rapidjson::Value("Success");
-  }
-  std::string help() const override {
-    return "";
   }
 };
 

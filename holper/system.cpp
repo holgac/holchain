@@ -16,20 +16,13 @@ private:
 public:
   Login1Action(Context* context, std::string method)
       : Action(context), method_(method) {}
-protected:
-  std::optional<std::string> failReason(Work* work) const override {
-    if (!work->parameters().map().empty()) {
-      return method_  + " takes no parameter";
-    }
-    return std::nullopt;
+  void spec(ParamSpec& UNUSED(spec)) const override {
+    return;
   }
   rapidjson::Value actOn(Work* UNUSED(work)) const override {
     SDBus bus(kLogin1Service, kLogin1Object, kLogin1IFace, false);
     bus.call(method_.c_str(), "b", false);
     return rapidjson::Value("Success");
-  }
-  std::string help() const {
-    return "";
   }
 };
 
@@ -55,4 +48,3 @@ void SystemCommandGroup::initializeCommand(Context* context,
     .setDescription("Shuts down the system")
     .makeAction<Login1Action>(context, "PowerOff");
 }
-
