@@ -57,7 +57,7 @@ class vim_py:
     cur = vim.current.window.cursor
     line = vim.current.buffer[cur[0] - 1]
     # check if whitespace
-    if len(line) is 0:
+    if len(line) == 0:
       return
     cchar = line[cur[1]]
     if cchar == ' ' or cchar == '\t':

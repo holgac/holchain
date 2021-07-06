@@ -11,6 +11,7 @@
 #include <set>
 #include <string>
 #include <map>
+#include <optional>
 
 class Command;
 class Request;
