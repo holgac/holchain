@@ -124,10 +124,10 @@ mkdir -p ~/.config/i3
 copy_with_backup "$I3CONFIG" "$DIR/i3config"
 copy_with_backup "$TMUXCONFIG" "$DIR/tmuxconf" "#"
 
-#if [ $(uname) != 'Darwin' ]; then
-#  echo 'updating system config'
-#  write_to '/etc/ld.so.conf.d/locallib.conf' '/usr/local/lib' 'root'
-#fi
+if [ $(uname) != 'Darwin' ]; then
+  echo 'updating system config'
+  write_to '/etc/ld.so.conf.d/locallib.conf' '/usr/local/lib' 'root'
+fi
 
 echo 'creating directories'
 if [ -z "$dry_run" ]; then
@@ -195,11 +195,6 @@ clone_and_compile () {
   #sudo make install
 }
 
-echo 'Compiling software'
-clone_and_compile https://github.com/vim/vim.git --enable-luainterp \
-  --enable-python3interp --enable-perlinterp --enable-rubyinterp \
-  --enable-tclinterp --enable-cscope --disable-sysmouse  --with-features=huge \
-  --enable-multibyte --disable-gui --enable-fail-if-missing
 
 function dnf_install () {
   local args=("$@")
@@ -256,8 +251,10 @@ ACTION=="add", SUBSYSTEM=="leds", KERNEL=="tpacpi::kbd_backlight", RUN+="/bin/ch
   echo 'Installing software'
   # assuming fedora
   dnf_install i3 i3status dmenu i3lock xbacklight feh conky \
-    NetworkManager network-manager-applet light scrot irssi \
-    xdotool xsel ShellCheck tmux blueman
+    NetworkManager network-manager-applet light irssi \
+    xdotool xsel ShellCheck tmux blueman ruby pavucontrol \
+    boost-devel ninja-build g++ xrandr libXrandr-devel \
+    pulseaudio-libs-devel the_silver_searcher
 fi
 
 function download_to () {
