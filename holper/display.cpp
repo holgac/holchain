@@ -16,7 +16,7 @@
 #include <typeinfo>
 
 class BrightnessChangeAction : public Action {
-  const std::string kBrightnessPath = "/sys/class/backlight/amdgpu_bl0";
+  const std::string kBrightnessPath = "/sys/class/backlight/amdgpu_bl1";
   void setScreenPower(bool val) const {
     context_->logger->info("Turning display %s", val ? "on" : "off");
     Display *dpy = XOpenDisplay(NULL);

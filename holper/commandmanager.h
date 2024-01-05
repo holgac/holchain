@@ -7,7 +7,7 @@ class Command;
 
 template <class T>
 concept CommandGroup = requires (T) {
-  { T::initializeCommand((Context*)nullptr, (Command*)nullptr) } -> void;
+  { T::initializeCommand((Context*)nullptr, (Command*)nullptr) } -> std::same_as<void>;
 };
 
 class CommandManager

@@ -63,14 +63,19 @@ void UnixSocket::write(const std::string& data) {
 
 void UnixSocket::readRaw(u64 len, void* dest) {
   u64 total_read = 0;
+  TimePoint until;
+  until += TimeDelta(3.0);
   char* bytes = (char*)dest;
-  while (total_read < len) {
+  while (total_read < len && TimePoint() < until) {
     int res = recv(socket_, bytes + total_read, len - total_read, MSG_WAITALL);
     if (res < 0) {
       THROW("Cannot read from unix socket: %s",
           StringUtils::errorString().c_str());
     }
     total_read += res;
+  }
+  if (total_read < len) {
+      THROW("Unix socket read timed out!");
   }
 }
 
@@ -103,7 +108,7 @@ void UnixSocket::serve(std::function<void(std::unique_ptr<UnixSocket>)> fn) {
     if (fd < 0) {
       context_->logger->logErrno("Socket accept failed");
     }
-    fn(std::move(std::make_unique<UnixSocket>(context_, fd)));
+    fn(std::make_unique<UnixSocket>(context_, fd));
   }
 }
 TimePoint UnixSocket::ctime() {

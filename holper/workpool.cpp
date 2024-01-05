@@ -52,7 +52,7 @@ std::pair<rapidjson::Value, int> WorkPoolWorker::runSingle(Work* work) {
 
 void WorkPoolWorker::run() {
   while (true) {
-    auto work = std::move(workPool_->getWork());
+    auto work = workPool_->getWork();
     auto res = runSingle(work.get());
     work->finish_(std::make_unique<WorkResult>(
         std::move(work), std::move(res.first.Move()), res.second));
