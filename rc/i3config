@@ -193,9 +193,12 @@ bindsym $mod+p mode $mode_system
 bindsym $mod+c exec --no-startup-id i3helper copy, mode "default"
 bindsym $mod+v exec --no-startup-id i3helper paste, mode "default"
 
-set $mode_multimedia "(p)lay/pause (s)top (n)ext (b)prev (e)light (w)nol p(a)ssword"
+set $mode_multimedia "(p)lay/pause (s)top (n)ext (b)prev (e)light (w)nol p(a)ssword (m)o(n)itor"
 mode $mode_multimedia {
-    bindsym a exec --no-startup-id pwgen -yBnc 16 1 | xsel -ib, mode "default"
+    bindsym a exec --no-startup-id holper -v clipboard genpwd -- length:32, mode "default"
+    bindsym m exec xrandr --output eDP --mode 1920x1080 --output HDMI-A-0 --off, mode "default"
+    bindsym n exec xrandr --output HDMI-A-0 --mode 1920x1080 --output eDP --off, mode "default"
+    bindsym t exec xrandr --output HDMI-A-0 --mode 1920x1080 --output eDP --mode 1920x1080, mode "default"
     # back to normal: Enter or Escape
     bindsym Return mode "default"
     bindsym Escape mode "default"
@@ -218,7 +221,7 @@ bindsym $mod+XF86AudioLowerVolume exec holper -v vol -- incr:-15
 bindsym Shift+XF86AudioLowerVolume exec holper -v music prev
 
 # f4
-# bindsym XF86AudioMicMute exec holper -v
+bindsym XF86AudioMicMute exec holper -v clipboard genpwd -- length:32
 
 # f5
 bindsym XF86MonBrightnessDown exec holper -v display brightness -- incr:-5
@@ -230,7 +233,11 @@ bindsym XF86MonBrightnessUp exec holper -v display brightness -- incr:5
 bindsym $mod+XF86MonBrightnessUp exec holper -v display brightness -- incr:15
 bindsym Shift+XF86MonBrightnessUp exec holper -v display keyboard_backlight -- incr:1
 
+# f8
+# bindsym XF86WLAN exec holper -v clipboard genpwd -- length:32
+
 bindsym --release Print exec i3helper screenshot
+bindsym --release $mod+Print exec i3helper screenshotfs
 
 bindsym $mod+Shift+d exec i3-input -F 'exec goldendict %s' -P 'word: '
 

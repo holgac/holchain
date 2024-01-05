@@ -55,6 +55,13 @@ augroup vimrc
   autocmd OptionSet * silent! call OnOptionSet()
   autocmd TerminalOpen * silent! setlocal nonumber norelativenumber
 augroup END
+function OverrideRules()
+  set shiftwidth=2 softtabstop=2 tabstop=2
+endfunction
+augroup override
+  autocmd Syntax rust call OverrideRules()
+  autocmd Syntax python call OverrideRules()
+augroup end
 let NERDTreeIgnore=['\.d$[[file]]', '\.o$[[file]]', '\.out$[[file]]']
 nnoremap <C-n> :NERDTreeToggle<CR>
 nmap <silent> <Leader>w <Plug>(CommandT)
@@ -247,6 +254,7 @@ Plugin 'VundleVim/Vundle.vim'
 Plugin 'Chiel92/vim-autoformat'
 Plugin 'preservim/nerdtree'
 Plugin 'kien/ctrlp.vim'
+Plugin 'digitaltoad/vim-pug'
 call vundle#end()
 nnoremap <leader>w :CtrlP<CR>
 nnoremap <leader>b :CtrlPBuffer<CR>
@@ -265,3 +273,9 @@ highlight potionComment ctermbg=red ctermfg=blue
 syntax match potionComment "\v +$"
 highlight TrailingWhitespace ctermbg=darkgreen guibg=lightgreen
 match TrailingWhitespace /\s\+$/
+
+function Goldendict()
+  call system('goldendict '.shellescape(@0))
+endfunction
+nnoremap <leader>fcp ^wy$:b1<CR>Go<Esc>p:b5<CR>^
+nnoremap <leader>fcd ^wy$:call Goldendict()<CR>

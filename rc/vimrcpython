@@ -57,7 +57,7 @@ class vim_py:
     cur = vim.current.window.cursor
     line = vim.current.buffer[cur[0] - 1]
     # check if whitespace
-    if len(line) is 0:
+    if len(line) == 0:
       return
     cchar = line[cur[1]]
     if cchar == ' ' or cchar == '\t':
@@ -66,7 +66,7 @@ class vim_py:
       return
     left = line[:cur[1]]
     right = line[cur[1]:]
-    regex = '^([\w/\.\-]*).*$'
+    regex = r'^([\w/\.\-]*).*$'
     leftw = re.match(regex, left[::-1]).groups()[0]
     rightw = re.match(regex, right).groups()[0]
     return (cur[0] - 1, len(left) - len(leftw), len(left) + len(rightw))
@@ -80,7 +80,7 @@ class vim_py:
     (linenum, start, end) = data
     line = buf[linenum]
     path = line[start:end]
-    regex = '^:(\d+)(:(\d+))?'
+    regex = r'^:(\d+)(:(\d+))?'
     right = line[end:]
     (line, col) = (0, 0)
     res = re.match(regex, right)
@@ -215,4 +215,6 @@ class CodeReview:
       return
     CodeReview.append(cmd)
 
+
 endpython
+

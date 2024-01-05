@@ -83,6 +83,7 @@ else
 fi
 alias ll='ls -lathor'
 alias mv='mv -i'
+alias cp='cp -i'
 alias sbp='source ~/.bashrc'
 alias rgrep='grep -r'
 alias grep='grep --color=auto'
